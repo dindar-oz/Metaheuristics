@@ -1,0 +1,39 @@
+Problem:
+--> BBOB functions (1 from each subset) +
+--> PMedian (not a priority) +
+
+
+Algorithms:
+
+-> GA + , PSO + , SA(?) +
+-> DE
+  with different correction mechanisms
+
+
+Correction Mechanism
+->
+
+Components:
+
+1. Mutation Operator:
+    -> Random Shift ( MAX-SHIFT )
+
+2. Crossover Operator
+    -> One-Point Crossover
+    -> N-Point Crossover
+
+3. Selection Operator
+
+   ->
+   ->
+   ->
+
+4. Aging +
+
+5. PSO-Mechanism +
+   -> NPGM +
+   -> SRM +
+
+ Some Remarks:
+
+ -> Discrete Space partitioning ?
