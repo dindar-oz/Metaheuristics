@@ -20,7 +20,11 @@ final class RandomTrip {
     static RandomTrip of(PECTOSolution solution, RNG rng) {
         if (solution.tripCount() == 0)
             return null;
-        int k = rng.randInt(solution.tripCount());
+        return at(solution, rng.randInt(solution.tripCount()));
+    }
+
+    // the k-th trip of the solution, counting the routes in ambulance order (0 <= k < tripCount())
+    static RandomTrip at(PECTOSolution solution, int k) {
         int a = 0;
         while (k >= solution.route(a).tripCount())
             k -= solution.route(a++).tripCount();

@@ -40,7 +40,7 @@ public final class PECTOVisualizer implements SolutionVisualizer<PECTOSolution, 
     }
 
     // red for critical patients through blue for stable ones
-    private static Color urgencyColor(Urgency u) {
+    public static Color urgencyColor(Urgency u) {
         switch (u) {
             case CRITICAL:
                 return new Color(178, 24, 43);
@@ -56,8 +56,20 @@ public final class PECTOVisualizer implements SolutionVisualizer<PECTOSolution, 
     }
 
     // well separated hues for consecutive ambulances (golden angle)
-    private static Color routeColor(int ambulance) {
+    public static Color routeColor(int ambulance) {
         return Color.getHSBColor((float) ((ambulance * 0.381966) % 1.0), 0.8f, 0.75f);
+    }
+
+    // a red cross in a white circle; a thick ring when over capacity
+    public static void hospitalSymbol(Graphics2D g, double x, double y, double r, boolean over) {
+        g.setColor(Color.WHITE);
+        g.fill(new Ellipse2D.Double(x - r, y - r, 2 * r, 2 * r));
+        g.setColor(over ? VIOLATION : HOSPITAL);
+        g.setStroke(new BasicStroke(over ? 3f : 1.5f));
+        g.draw(new Ellipse2D.Double(x - r, y - r, 2 * r, 2 * r));
+        g.setStroke(new BasicStroke((float) (r / 2.5)));
+        g.draw(new Line2D.Double(x - r * 0.55, y, x + r * 0.55, y));
+        g.draw(new Line2D.Double(x, y - r * 0.55, x, y + r * 0.55));
     }
 
     /**
@@ -368,18 +380,6 @@ public final class PECTOVisualizer implements SolutionVisualizer<PECTOSolution, 
                 hospitalSymbol(g, px(id), py(id), r, problem.room(facts.solution, id) < 0);
                 label(g, id, r);
             }
-        }
-
-        // a red cross in a white circle; a thick ring when over capacity
-        private static void hospitalSymbol(Graphics2D g, double x, double y, double r, boolean over) {
-            g.setColor(Color.WHITE);
-            g.fill(new Ellipse2D.Double(x - r, y - r, 2 * r, 2 * r));
-            g.setColor(over ? VIOLATION : HOSPITAL);
-            g.setStroke(new BasicStroke(over ? 3f : 1.5f));
-            g.draw(new Ellipse2D.Double(x - r, y - r, 2 * r, 2 * r));
-            g.setStroke(new BasicStroke((float) (r / 2.5)));
-            g.draw(new Line2D.Double(x - r * 0.55, y, x + r * 0.55, y));
-            g.draw(new Line2D.Double(x, y - r * 0.55, x, y + r * 0.55));
         }
 
         private void drawAmbulances(Graphics2D g) {

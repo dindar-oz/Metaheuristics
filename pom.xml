@@ -13,7 +13,7 @@
     <description>Metaheuristic algorithms, problem models and an experiment runner</description>
 
     <properties>
-        <maven.compiler.release>8</maven.compiler.release>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- mvnw compile exec:java starts the lab; -Dexec.mainClass=examples.XExample runs an example -->
         <exec.mainClass>lab.MetaheuristicLab</exec.mainClass>

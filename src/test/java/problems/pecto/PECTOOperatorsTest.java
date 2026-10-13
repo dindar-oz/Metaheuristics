@@ -3,9 +3,11 @@ package problems.pecto;
 import base.MutationOperator;
 import org.junit.jupiter.api.Test;
 import problems.pecto.operators.ChangeHospital;
+import problems.pecto.operators.GreedyPECTOSG;
 import problems.pecto.operators.MoveTrip;
 import problems.pecto.operators.RandomPECTOSG;
 import problems.pecto.operators.RouteCrossover;
+import problems.pecto.operators.SwapTrips;
 import util.random.MersenneTwisterRNG;
 import util.random.RNG;
 
@@ -87,5 +89,59 @@ class PECTOOperatorsTest {
         assertEquals(parent, child);
         for (int a = 0; a < PROBLEM.ambulanceCount(); a++)
             assertSame(parent.route(a), child.route(a));
+    }
+
+    @Test
+    void greedySolutionsAreFeasibleAndDeterministic() {
+        PECTOProblem tight = PECTOInstances.random(5, 60, 3, 20, 4);   // every bed is needed
+        for (PECTOProblem problem : new PECTOProblem[]{PROBLEM, tight}) {
+            PECTOSolution a = new GreedyPECTOSG(problem).generate(problem, new MersenneTwisterRNG(1));
+            PECTOSolution b = new GreedyPECTOSG(problem).generate(problem, new MersenneTwisterRNG(2));
+            assertTrue(problem.isFeasible(a), problem.toString());
+            assertEquals(a, b);
+        }
+        // greedy is far better than random on average
+        double random = PROBLEM.cost(new RandomPECTOSG(PROBLEM).generate(PROBLEM, new MersenneTwisterRNG(3)));
+        assertTrue(PROBLEM.cost(new GreedyPECTOSG(PROBLEM).generate(PROBLEM, null)) < random);
+    }
+
+    @Test
+    void completeKeepsExistingTripsAndRepairFixesViolations() {
+        PECTOProblem problem = PECTOProblem.builder().ambulance(0, 0).ambulance(9, 9)
+                .patient(1, 1, Urgency.LIGHT).patient(2, 2, Urgency.CRITICAL).patient(3, 3, Urgency.HEAVY)
+                .hospital(5, 5, 1).hospital(6, 6, 2).build();          // patients 2-4, hospitals 5-6
+        PECTOSolution partial = problem.solution(new int[][]{{3, 6}, {}});
+        PECTOSolution complete = GreedyPECTOSG.complete(partial);
+        assertTrue(problem.isFeasible(complete));
+        assertEquals(3, complete.route(0).patient(0));
+        assertEquals(6, complete.route(0).hospital(0));
+
+        // patient 2 twice, hospital 5 over capacity
+        PECTOSolution broken = problem.solution(new int[][]{{2, 5, 3, 5}, {2, 6}});
+        assertFalse(problem.isFeasible(broken));
+        PECTOSolution repaired = GreedyPECTOSG.repair(broken);
+        assertTrue(problem.isFeasible(repaired));
+        assertEquals(2, repaired.route(0).patient(0));            // the first trips are kept
+        assertSame(GreedyPECTOSG.repair(repaired), repaired);     // nothing to do for a feasible solution
+    }
+
+    @Test
+    void swapTripsKeepsLoadsAndFeasibility() {
+        RNG rng = new MersenneTwisterRNG(5);
+        SwapTrips swap = new SwapTrips();
+        PECTOSolution solution = new RandomPECTOSG(PROBLEM).generate(PROBLEM, rng);
+        for (int step = 0; step < 3000; step++) {
+            PECTOSolution before = PROBLEM.decode(solution.toSequence());
+            PECTOSolution next = swap.apply(solution, rng);
+            assertEquals(before, solution, "the input changed");
+            assertNotEquals(solution, next);
+            assertTrue(PROBLEM.isFeasible(next));
+            assertEquals(PROBLEM.cost(PROBLEM.decode(next.toSequence())), PROBLEM.cost(next));
+            for (int k = 0; k < PROBLEM.hospitalCount(); k++)
+                assertEquals(solution.load(PROBLEM.hospitalId(k)), next.load(PROBLEM.hospitalId(k)));
+            solution = next;
+        }
+        PECTOSolution one = PROBLEM.solution(new int[PROBLEM.ambulanceCount()][0]).withRoutes(PROBLEM.route(0, 12, 162));
+        assertSame(one, swap.apply(one, rng));                     // a single trip cannot be swapped
     }
 }

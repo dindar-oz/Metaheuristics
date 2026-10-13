@@ -137,6 +137,11 @@ public final class LabFrame extends JFrame {
         seed.setToolTipText("Base seed: run i uses a seed derived from it, so repeating a run gives identical results");
         bar.add(labeled("Seed", seed, 160));
         bar.add(Box.createHorizontalGlue());
+        JButton problemLab = new JButton("Problem Lab");
+        problemLab.setToolTipText("Open the Problem Lab: build and edit instances and solutions by hand and watch the cost change");
+        problemLab.addActionListener(e -> lab.problemlab.ProblemLab.chooseAndOpen(this));
+        bar.add(problemLab);
+        bar.addSeparator();
         bar.add(exportButton);
         return bar;
     }

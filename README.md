@@ -159,6 +159,49 @@ Swing timer, so monitoring never slows the search down. Problems and algorithms 
 also register a `lab.view.SolutionVisualizer` (a function from problem and solution to a Swing component), as the
 wind farm and TSP problems do with `WFLOPVisualizer` and `TSPVisualizer`.
 
+## Problem Lab (GUI)
+
+```bash
+./mvnw compile exec:java -Dexec.mainClass=lab.problemlab.ProblemLab                     # choose a problem
+./mvnw compile exec:java -Dexec.mainClass=lab.problemlab.ProblemLab -Dexec.args=PECTO   # open one directly
+```
+
+Where the Metaheuristic Lab runs algorithms, the Problem Lab is for understanding a problem: build an instance, make a
+solution, change both by hand and watch the cost and the constraints react. It also opens from the **Problem Lab**
+button of the Metaheuristic Lab.
+
+- **Instance**: generate one with any of the problem's generators (their parameters are edited in place) or open a file;
+  then edit it on the map.
+- **Solution**: generate one with any of the problem's solution generators, or open a file; then edit it on the map.
+- **Mutation**: apply an operator once or *n* times, keeping every neighbor (a random walk) or only those that are not
+  worse / better (a hill climber); **Play** keeps applying it so you can watch the solution evolve.
+- The strip above the view shows the cost, its change caused by the last action, feasibility with the violated
+  constraints in words, and the problem's own measures. Every action is recorded in the history (with a cost plot);
+  **Undo / Redo** (Ctrl+Z / Ctrl+Y) or a click in the history returns to any earlier state. All randomness comes from one
+  seeded RNG, so a sequence of actions can be replayed.
+- Instances and solutions can be saved at any time (File menu, Ctrl+S / Ctrl+Shift+S).
+
+For **PECTO**, the map shows ambulances, patients (by urgency) and hospitals (with a ring that fills as beds are taken),
+and the routes the last action changed, with their previous version dashed. Tools: *select / move* (drag a participant
+to move it), *edit routes* (drag a patient onto a hospital, an ambulance or another patient to deliver it there, append
+it to that route or insert it before that trip), and *add ambulance / patient / hospital*. Right-click any participant
+for its actions; the keyboard edits the selection (arrows move it, 1–5 set a patient's urgency, +/− a hospital's beds,
+U / [ / ] take a trip out or move it in its route, Delete removes it, G assigns untransported patients greedily); Help
+lists them all. The side panel edits the selected participant's properties and lists the routes (with each route's cost
+change), the trips of the highlighted route (change a hospital in place, reorder trips), the hospitals and the patients
+nobody transports. Removing or adding participants renumbers IDs; the solution follows, dropping trips of removed
+participants. Instances are plain text (`PECTOFiles`, `*.pecto`), solutions the paper's encoding, one route per line
+(`*.pectosol`). The lab adds `GreedyPECTOSG` (with `complete` and `repair`) and the `SwapTrips` operator to the problem.
+
+**Supporting another problem** takes one class: implement `lab.problemlab.ProblemWorkbench<S, P>` (its instance
+generators, solution generators and mutation operators as `ComponentSpec`s with `ParamSpec` parameters, optionally file
+formats, an `Evaluation` with violations and measures, and an interactive `ProblemView`) and add it to
+`ProblemLabCatalog`. Without a view of its own, the problem is shown as text and everything else works; planar problems
+can build their view on `ZoomPanCanvas`. Views edit only through the `Workspace`, which evaluates every state and keeps
+the undoable history, so they never deal with evaluation or undo themselves.
+The [Problem Lab developer guide](src/main/java/lab/problemlab/doc/Problem-Lab-Developer-Guide.md) walks through it
+step by step, from a 40-line workbench to an interactive editor, with the contracts, conventions and tests to follow.
+
 ## Quick start (API)
 
 ```java
@@ -227,6 +270,7 @@ src/main/java/
   representation/  IntegerPermutation, IntegerVector, DoubleVector, IntegerMatrix, BinaryString, Individual, Population
   experiments/     Experiment runner and result handlers
   lab/             Metaheuristic Lab desktop tool (Swing + XChart + FlatLaf); lab/model/Catalog lists its problems
+  lab/problemlab/  Problem Lab: ProblemWorkbench per problem (ProblemLabCatalog), model (Workspace, history), ui, pecto
   problems/        TSP, Sudoku, wind farm layout (wflop) and continuous benchmarks (Rastrigin, Sphere)
   examples/        runnable demos
 src/test/java/     reproducibility, exact budget, concurrency, cancellation and operator/selector contract tests
@@ -234,11 +278,12 @@ src/test/java/     reproducibility, exact budget, concurrency, cancellation and 
 
 ## Building and running
 
-Requires Java 8+. The Maven wrapper downloads Maven and the dependencies (commons-math3, XChart, FlatLaf, JUnit):
+Requires Java 21+. The Maven wrapper downloads Maven and the dependencies (commons-math3, XChart, FlatLaf, JUnit):
 
 ```bash
 ./mvnw test                                                              # build and run the tests
 ./mvnw compile exec:java                                                 # Metaheuristic Lab
+./mvnw compile exec:java -Dexec.mainClass=lab.problemlab.ProblemLab     # Problem Lab
 ./mvnw compile exec:java -Dexec.mainClass=examples.TSPExample           # TSP: EA vs SA vs LocalSearch vs ACO
 ./mvnw compile exec:java -Dexec.mainClass=examples.ContinuousExample    # DE boundary handlers vs PSO on Rastrigin
 ./mvnw compile exec:java -Dexec.mainClass=examples.SudokuExample        # EA and SA on a sudoku
