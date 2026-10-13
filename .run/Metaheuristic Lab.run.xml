@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Metaheuristic Lab" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="lab.MetaheuristicLab" />
+    <module name="metaheuristics" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
