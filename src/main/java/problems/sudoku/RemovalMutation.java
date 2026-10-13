@@ -1,46 +1,43 @@
 package problems.sudoku;
 
-import base.OptimizationProblem;
 import base.MutationOperator;
-import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 /**
  * Created by dindar.oz on 02.06.2015.
  */
-public class RemovalMutation implements MutationOperator {
+public class RemovalMutation implements MutationOperator<SDKRepresentation> {
     private static final int MAX_ATTEMPT = 10;
     private static final double APPLY_PROBABILITY = 0.4;
 
+    private final SDKProblem problem;
+
+    public RemovalMutation(SDKProblem problem) {
+        this.problem = problem;
+    }
+
     @Override
-    public Representation apply(OptimizationProblem problem, Representation i) {
+    public SDKRepresentation apply(SDKRepresentation i, RNG rng) {
 
-        if (!RandUtil.rollDice(APPLY_PROBABILITY))
-            return i.clone();
+        if (!rng.rollDice(APPLY_PROBABILITY))
+            return i.copy();
 
-        SDKProblem sp = (SDKProblem)problem;
+        SDKRepresentation si = i;
 
-        SDKRepresentation si = (SDKRepresentation)i;
-
-        SDKRepresentation mutant = (SDKRepresentation)si.clone();
+        SDKRepresentation mutant = si.copy();
         int[][] board = mutant.getBoard();
 
         int blockSize = si.getBlockSize();
 
 
-        int x = RandUtil.randInt(blockSize*blockSize);
-        int y = RandUtil.randInt(blockSize*blockSize);
-        if (sp.initialBoard[x][y]==0)
+        int x = rng.randInt(blockSize*blockSize);
+        int y = rng.randInt(blockSize*blockSize);
+        if (problem.initialBoard[x][y]==0)
         {
             board[x][y] = 0;
             return mutant;
         }
 
-        return si.clone();
-    }
-
-    @Override
-    public int neighboringCount() {
-        return 1;
+        return si.copy();
     }
 }

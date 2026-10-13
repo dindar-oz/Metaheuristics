@@ -1,139 +1,35 @@
 package metaheuristic;
 
-import base.InitialSolutionGenerator;
 import base.OptimizationProblem;
-import base.TerminalCondition;
 import representation.base.Representation;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Common bookkeeping for all metaheuristics: best-so-far tracking, evaluation counting,
- * termination and listener notification. Subclasses implement run().
+ * Provides naming and a describe() built from parameters().
  */
-public abstract class AbstractMetaheuristic implements MetaHeuristic {
+public abstract class AbstractMetaheuristic<S extends Representation<S>, P extends OptimizationProblem<S>>
+        implements Metaheuristic<S, P> {
 
-    protected TerminalCondition terminalCondition = TerminalCondition.never();
-    protected int iterationCount = 0;
+    private final String name;
 
-    private String name = null;
-    private long neighboringCount = 0;
-    private double bestKnownCost = Double.MAX_VALUE;
-    private Representation bestKnownSolution = null;
-    private long startTime;
-    private long bestAchieveTime;
-
-    private final List<MetaHeuristicListener> listeners = new ArrayList<>();
-
-    protected AbstractMetaheuristic() {
-    }
-
-    protected AbstractMetaheuristic(TerminalCondition terminalCondition) {
-        this.terminalCondition = terminalCondition;
-    }
-
-    @Override
-    public final void perform(OptimizationProblem problem, InitialSolutionGenerator solutionGenerator) {
-        init(problem);
-        run(problem, solutionGenerator);
-        listeners.forEach(MetaHeuristicListener::onCompleteEvent);
-    }
-
-    protected abstract void run(OptimizationProblem problem, InitialSolutionGenerator solutionGenerator);
-
-    // Resets the state of the algorithm so that it can be performed again
-    protected void init(OptimizationProblem problem) {
-        iterationCount = 0;
-        neighboringCount = 0;
-        bestKnownSolution = null;
-        bestKnownCost = Double.MAX_VALUE;
-        startTime = System.currentTimeMillis();
-        bestAchieveTime = 0;
-        terminalCondition.init();
-    }
-
-    protected boolean isTerminated() {
-        return terminalCondition.isSatisfied(this);
-    }
-
-    // Evaluates the solution, counts the evaluation and updates the best known solution
-    protected double evaluate(OptimizationProblem problem, Representation r) {
-        neighboringCount++;
-        double cost = problem.cost(r);
-        updateBestIfNecessary(r, cost);
-        return cost;
-    }
-
-    protected void updateBestIfNecessary(Representation solution, double cost) {
-        if (cost < bestKnownCost) {
-            bestKnownSolution = solution.clone();
-            bestKnownCost = cost;
-            bestAchieveTime = System.currentTimeMillis() - startTime;
-        }
-    }
-
-    public void setTerminalCondition(TerminalCondition terminalCondition) {
-        this.terminalCondition = terminalCondition;
-    }
-
-    public void addListener(MetaHeuristicListener listener) {
-        listeners.add(listener);
-    }
-
-    public void removeListener(MetaHeuristicListener listener) {
-        listeners.remove(listener);
-    }
-
-    protected boolean hasListeners() {
-        return !listeners.isEmpty();
-    }
-
-    protected void fireIterationEvent(IterationEvent event) {
-        for (MetaHeuristicListener listener : listeners)
-            listener.onIterationEvent(event);
-    }
-
-    protected String defaultName() {
-        return getClass().getSimpleName();
-    }
-
-    @Override
-    public String getName() {
-        return name == null ? defaultName() : name;
-    }
-
-    public void setName(String name) {
+    protected AbstractMetaheuristic(String name) {
         this.name = name;
     }
 
     @Override
-    public int getIterationCount() {
-        return iterationCount;
+    public String getName() {
+        return name;
     }
 
-    @Override
-    public long getNeighboringCount() {
-        return neighboringCount;
-    }
+    // parameter values as "key=value, ..." for describe()
+    protected abstract String parameters();
 
     @Override
-    public double getBestKnownCost() {
-        return bestKnownCost;
-    }
-
-    @Override
-    public Representation getBestKnownSolution() {
-        return bestKnownSolution;
-    }
-
-    @Override
-    public long getBestAchieveTime() {
-        return bestAchieveTime;
+    public String describe() {
+        return name + "(" + parameters() + ")";
     }
 
     @Override
     public String toString() {
-        return getName();
+        return describe();
     }
 }

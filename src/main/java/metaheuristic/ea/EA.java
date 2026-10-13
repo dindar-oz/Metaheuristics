@@ -3,178 +3,216 @@ package metaheuristic.ea;
 import base.InitialSolutionGenerator;
 import base.MutationOperator;
 import base.OptimizationProblem;
-import base.TerminalCondition;
 import metaheuristic.AbstractMetaheuristic;
-import metaheuristic.BasePIterationEvent;
+import metaheuristic.Params;
 import metaheuristic.ea.base.*;
 import metaheuristic.ea.crossover.SimpleCrossOverStrategy;
+import metaheuristic.ea.parentselector.TournamentParentSelector;
+import metaheuristic.ea.replacement.SteadyStateReplacement;
 import metaheuristic.ea.victimselector.SimpleVictimSelector;
-import representation.AgeingIndividual;
-import representation.CostBasedComparator;
-import representation.ListPopulation;
+import metaheuristic.run.Metrics;
+import metaheuristic.run.SearchContext;
 import representation.base.Individual;
 import representation.base.Population;
 import representation.base.Representation;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * Steady-state evolutionary algorithm with optional immigration, ageing and local search.
+ * Evolutionary algorithm. Every generation:
+ * parents are selected, crossover offsprings are offered through the ReplacementStrategy,
+ * the MutationStrategy mutates the population, then every GenerationHook runs (immigration, ageing, ...).
+ * <pre>
+ * EA ea = EA.builder(isg).crossovers(new SimplePermutationCrossover()).mutations(new TwoOpt())
+ *           .populationSize(100).hook(new ImmigrationHook(50, 10)).build();
+ * </pre>
  */
-public class EA extends AbstractMetaheuristic {
+public final class EA<S extends Representation<S>> extends AbstractMetaheuristic<S, OptimizationProblem<S>> {
 
-    private final List<CrossOverOperator> crossOverOperators;
-    private final List<MutationOperator> mutationOperators;
+    private final List<CrossOverOperator<S>> crossOverOperators;
+    private final List<MutationOperator<S>> mutationOperators;
+    private final InitialSolutionGenerator<S> generator;
     private final ParentSelector parentSelector;
+    private final CrossOverStrategy crossOverStrategy;
+    private final MutationStrategy mutationStrategy;
+    private final ReplacementStrategy replacementStrategy;
+    private final List<GenerationHook<S>> hooks;
+    private final int populationSize;
 
-    private CrossOverStrategy crossOverStrategy = new SimpleCrossOverStrategy(0.8);
-    private MutationStrategy mutationStrategy = new SimpleMutationStrategy(0.8, 1);
-    private VictimSelector victimSelector = new SimpleVictimSelector();
-
-    private int populationSize = 50;
-
-    private int immigrationPeriod = 0; // 0 means no immigration
-    private int immigrantCount = 20;
-
-    private int ageingThreshold = 0; // 0 means no ageing
-
-    private MutationOperator localSearch = null;
-    private int localSearchCount = 0;
-
-    public EA(List<CrossOverOperator> crossOverOperators, List<MutationOperator> mutationOperators,
-              ParentSelector parentSelector, TerminalCondition terminalCondition) {
-        super(terminalCondition);
-        this.crossOverOperators = crossOverOperators == null ? Collections.emptyList() : crossOverOperators;
-        this.mutationOperators = mutationOperators == null ? Collections.emptyList() : mutationOperators;
-        this.parentSelector = parentSelector;
+    private EA(Builder<S> b) {
+        super(b.name);
+        this.crossOverOperators = Params.immutableCopy(b.crossOverOperators);
+        this.mutationOperators = Params.immutableCopy(b.mutationOperators);
+        if (crossOverOperators.isEmpty() && mutationOperators.isEmpty())
+            throw new IllegalArgumentException("EA needs at least one crossover or mutation operator");
+        this.generator = Params.required("generator", b.generator);
+        this.parentSelector = Params.required("parentSelector", b.parentSelector);
+        this.crossOverStrategy = Params.required("crossOverStrategy", b.crossOverStrategy);
+        this.mutationStrategy = Params.required("mutationStrategy", b.mutationStrategy);
+        this.replacementStrategy = Params.required("replacementStrategy", b.replacementStrategy);
+        this.hooks = Params.immutableCopy(b.hooks);
+        this.populationSize = Params.positive("populationSize", b.populationSize);
     }
 
-    public void setPopulationSize(int populationSize) {
-        this.populationSize = populationSize;
-    }
-
-    public void setCrossOverStrategy(CrossOverStrategy crossOverStrategy) {
-        this.crossOverStrategy = crossOverStrategy;
-    }
-
-    public void setMutationStrategy(MutationStrategy mutationStrategy) {
-        this.mutationStrategy = mutationStrategy;
-    }
-
-    public void setVictimSelector(VictimSelector victimSelector) {
-        this.victimSelector = victimSelector;
-    }
-
-    public void setImmigrationPeriod(int immigrationPeriod) {
-        this.immigrationPeriod = immigrationPeriod;
-    }
-
-    public void setImmigrantCount(int immigrantCount) {
-        this.immigrantCount = immigrantCount;
-    }
-
-    public void setAgeingThreshold(int ageingThreshold) {
-        this.ageingThreshold = ageingThreshold;
-    }
-
-    // Each iteration, the given operator is applied to the best localSearchCount individuals
-    public void setLocalSearch(MutationOperator localSearch, int localSearchCount) {
-        this.localSearch = localSearch;
-        this.localSearchCount = localSearchCount;
+    public static <S extends Representation<S>> Builder<S> builder(InitialSolutionGenerator<S> generator) {
+        Builder<S> b = new Builder<>();
+        b.generator = generator;
+        return b;
     }
 
     @Override
-    protected void run(OptimizationProblem problem, InitialSolutionGenerator solutionGenerator) {
-        Population population = generatePopulation(problem, solutionGenerator, populationSize);
+    public void search(OptimizationProblem<S> problem, SearchContext<S> ctx) {
+        Run run = new Run(problem, ctx);
+        Population<S> population = new Population<>();
+        for (int i = 0; i < populationSize && !ctx.shouldStop(); i++)
+            population.add(run.createRandom());
 
-        while (!isTerminated()) {
-            applyCrossOver(problem, population);
-            mutationStrategy.applyMutations(problem, population, mutationOperators, r -> evaluate(problem, r));
-            iterationCount++;
-
-            if (immigrationPeriod > 0 && iterationCount % immigrationPeriod == 0)
-                acceptImmigrants(problem, population, solutionGenerator);
-
-            if (ageingThreshold > 0)
-                performAgeing(problem, solutionGenerator, population);
-
-            if (localSearch != null && localSearchCount > 0)
-                applyLocalSearch(problem, population);
-
-            trimPopulation(problem, population);
-
-            if (hasListeners()) {
-                Individual best = population.getBest();
-                fireIterationEvent(new BasePIterationEvent(iterationCount, getNeighboringCount(),
-                        best.getCost(), best.getRepresentation(), population));
+        while (!ctx.shouldStop()) {
+            run.generation++;
+            if (!crossOverOperators.isEmpty()) {
+                List<Individual<S>> parents = parentSelector.selectParents(population.individuals(), ctx.rng());
+                List<Individual<S>> offsprings = crossOverStrategy.generateOffsprings(parents, crossOverOperators, run);
+                replacementStrategy.replace(population, offsprings, run);
             }
+            mutationStrategy.applyMutations(population, mutationOperators, run);
+            for (GenerationHook<S> hook : hooks)
+                hook.afterGeneration(population, run);
+
+            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, population.meanCost()));
         }
-    }
-
-    private Population generatePopulation(OptimizationProblem problem, InitialSolutionGenerator solutionGenerator, int count) {
-        Population population = new ListPopulation();
-        for (Representation r : solutionGenerator.generate(problem, count))
-            population.add(new AgeingIndividual(r, evaluate(problem, r)));
-        return population;
-    }
-
-    private void applyCrossOver(OptimizationProblem problem, Population population) {
-        if (crossOverOperators.isEmpty())
-            return;
-
-        List<Individual> parents = parentSelector.selectParents(problem, population.getIndividuals());
-        List<Individual> offsprings = crossOverStrategy.generateOffsprings(problem, parents, crossOverOperators,
-                r -> evaluate(problem, r));
-        List<Individual> victims = victimSelector.selectVictims(problem, population.getIndividuals(), offsprings.size());
-
-        for (Individual offspring : offsprings) {
-            if (!population.contains(offspring)) {
-                population.remove(victims.remove(0));
-                population.add(new AgeingIndividual(offspring));
-            }
-        }
-    }
-
-    // Removes the worst individuals if the population grew beyond its size
-    private void trimPopulation(OptimizationProblem problem, Population population) {
-        int victimCount = population.size() - populationSize;
-        if (victimCount <= 0)
-            return;
-
-        List<Individual> victims = victimSelector.selectVictims(problem, population.getIndividuals(), victimCount);
-        population.removeAll(victims);
-    }
-
-    private void applyLocalSearch(OptimizationProblem problem, Population population) {
-        population.sort(new CostBasedComparator());
-
-        int count = Math.min(localSearchCount, population.size());
-        for (int i = 0; i < count; i++) {
-            Representation r = localSearch.apply(problem, population.get(i).getRepresentation());
-            population.add(new AgeingIndividual(r, evaluate(problem, r)));
-        }
-    }
-
-    private void performAgeing(OptimizationProblem problem, InitialSolutionGenerator solutionGenerator, Population population) {
-        population.forEach(Individual::age);
-        population.removeIf(i -> i.getAge() > ageingThreshold);
-        int removed = populationSize - population.size();
-        if (removed > 0)
-            population.add(generatePopulation(problem, solutionGenerator, removed));
-    }
-
-    // Replaces the worst immigrantCount individuals with newly generated ones
-    private void acceptImmigrants(OptimizationProblem problem, Population population, InitialSolutionGenerator solutionGenerator) {
-        population.sort(new CostBasedComparator());
-        int count = Math.min(immigrantCount, population.size());
-        for (int i = 0; i < count; i++)
-            population.remove(population.size() - 1);
-        population.add(generatePopulation(problem, solutionGenerator, count));
     }
 
     @Override
-    protected String defaultName() {
-        return "EA";
+    protected String parameters() {
+        return "populationSize=" + populationSize + ", crossovers=" + Params.describe(crossOverOperators)
+                + ", mutations=" + Params.describe(mutationOperators) + ", parents=" + Params.describe(parentSelector)
+                + ", " + Params.describe(crossOverStrategy) + ", " + Params.describe(mutationStrategy)
+                + ", " + Params.describe(replacementStrategy) + (hooks.isEmpty() ? "" : ", hooks=" + Params.describe(hooks));
+    }
+
+    // The EAContext of one run
+    private final class Run implements EAContext<S> {
+        private final OptimizationProblem<S> problem;
+        private final SearchContext<S> ctx;
+        private long generation = 0;
+
+        Run(OptimizationProblem<S> problem, SearchContext<S> ctx) {
+            this.problem = problem;
+            this.ctx = ctx;
+        }
+
+        @Override
+        public SearchContext<S> search() {
+            return ctx;
+        }
+
+        @Override
+        public long generation() {
+            return generation;
+        }
+
+        @Override
+        public int populationSize() {
+            return populationSize;
+        }
+
+        @Override
+        public Individual<S> evaluate(S solution) {
+            return new Individual<>(solution, ctx.evaluate(solution), generation);
+        }
+
+        @Override
+        public Individual<S> createRandom() {
+            return evaluate(generator.generate(problem, ctx.rng()));
+        }
+
+        @Override
+        public void insert(Population<S> population, List<Individual<S>> newcomers) {
+            replacementStrategy.replace(population, newcomers, this);
+        }
+    }
+
+    public static final class Builder<S extends Representation<S>> {
+        private String name = "EA";
+        private final List<CrossOverOperator<S>> crossOverOperators = new ArrayList<>();
+        private final List<MutationOperator<S>> mutationOperators = new ArrayList<>();
+        private InitialSolutionGenerator<S> generator;
+        private ParentSelector parentSelector = new TournamentParentSelector(3, 2);
+        private CrossOverStrategy crossOverStrategy = new SimpleCrossOverStrategy(0.8);
+        private MutationStrategy mutationStrategy = new SimpleMutationStrategy(0.8, 1);
+        private ReplacementStrategy replacementStrategy = new SteadyStateReplacement(new SimpleVictimSelector());
+        private final List<GenerationHook<S>> hooks = new ArrayList<>();
+        private int populationSize = 50;
+
+        private Builder() {
+        }
+
+        public Builder<S> name(String name) {
+            this.name = name;
+            return this;
+        }
+
+
+        @SafeVarargs
+        public final Builder<S> crossovers(CrossOverOperator<S>... operators) {
+            return crossovers(Arrays.asList(operators));
+        }
+
+        public Builder<S> crossovers(List<? extends CrossOverOperator<S>> operators) {
+            crossOverOperators.addAll(operators);
+            return this;
+        }
+
+        @SafeVarargs
+        public final Builder<S> mutations(MutationOperator<S>... operators) {
+            return mutations(Arrays.asList(operators));
+        }
+
+        public Builder<S> mutations(List<? extends MutationOperator<S>> operators) {
+            mutationOperators.addAll(operators);
+            return this;
+        }
+
+        // default: tournament(3, 2)
+        public Builder<S> parentSelector(ParentSelector parentSelector) {
+            this.parentSelector = parentSelector;
+            return this;
+        }
+
+        // default: SimpleCrossOverStrategy(0.8)
+        public Builder<S> crossOverStrategy(CrossOverStrategy crossOverStrategy) {
+            this.crossOverStrategy = crossOverStrategy;
+            return this;
+        }
+
+        // default: SimpleMutationStrategy(0.8, 1)
+        public Builder<S> mutationStrategy(MutationStrategy mutationStrategy) {
+            this.mutationStrategy = mutationStrategy;
+            return this;
+        }
+
+        // default: steady state, worst individuals are replaced, no duplicates
+        public Builder<S> replacementStrategy(ReplacementStrategy replacementStrategy) {
+            this.replacementStrategy = replacementStrategy;
+            return this;
+        }
+
+        // hooks run in the order they are added
+        public Builder<S> hook(GenerationHook<S> hook) {
+            hooks.add(hook);
+            return this;
+        }
+
+        // default 50
+        public Builder<S> populationSize(int populationSize) {
+            this.populationSize = populationSize;
+            return this;
+        }
+
+        public EA<S> build() {
+            return new EA<>(this);
+        }
     }
 }

@@ -1,12 +1,10 @@
 package operators;
 
-import base.OptimizationProblem;
-import exceptions.WrongIndividualType;
 import base.MutationOperator;
 import representation.IntegerPermutation;
 import representation.IntegerVector;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 /**
  * Created by dindar.oz on 28.05.2015.
@@ -16,28 +14,19 @@ import util.random.RandUtil;
  *
  *
   */
-public class RandomRemove implements MutationOperator {
+public class RandomRemove implements MutationOperator<IntegerVector> {
 
     @Override
-    public Representation apply(OptimizationProblem problem, Representation r) {
-        if (!(r instanceof IntegerVector))
-            throw new WrongIndividualType("Remove can only be applied to IntegerVector");
+    public IntegerVector apply(IntegerVector r, RNG rng) {
 
-        IntegerVector ni =(IntegerVector) r.clone();
+        IntegerVector ni = r.copy();
 
         if (ni.getLength()<2)
             return ni;
-        int index = RandUtil.randInt(ni.getLength());
+        int index = rng.randInt(ni.getLength());
 
         ni.getList().remove(index);
-        //System.out.println("index: "+index);
-        //System.out.println("nextIndex: " + nextIndex);
 
-        return (Representation)ni;
-    }
-
-    @Override
-    public int neighboringCount() {
-        return 1;
+        return ni;
     }
 }

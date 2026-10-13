@@ -1,24 +1,26 @@
 package metaheuristic.ea.victimselector;
 
-import base.OptimizationProblem;
+import representation.base.Representation;
 import metaheuristic.ea.base.VictimSelector;
-import representation.CostBasedComparator;
 import representation.base.Individual;
+import util.random.RNG;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by dindar.oz on 11.06.2015.
+ * Selects the worst individuals.
  */
 public class SimpleVictimSelector implements VictimSelector {
     @Override
-    public List<Individual> selectVictims(OptimizationProblem problem, List<Individual> population, int victimCount) {
-        population.sort(new CostBasedComparator());
-        List<Individual> victims = new ArrayList<>(victimCount);
-        for (int i = 1; i <= victimCount; i++) {
-            victims.add(population.get(population.size()-i));
-        }
-        return victims;
+    public <S extends Representation<S>> List<Individual<S>> selectVictims(List<Individual<S>> population, int victimCount, RNG rng) {
+        List<Individual<S>> sorted = new ArrayList<>(population);
+        sorted.sort(Individual.BY_COST.reversed());
+        return new ArrayList<>(sorted.subList(0, Math.min(victimCount, sorted.size())));
+    }
+
+    @Override
+    public String toString() {
+        return "worst";
     }
 }

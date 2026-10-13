@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Created by dindar.oz on 15.07.2015.
  */
-public class IntegerAssignment implements Array<Integer>,Representation {
+public class IntegerAssignment implements Array<Integer>, Representation<IntegerAssignment> {
 
     int values[];
 
@@ -30,12 +30,12 @@ public class IntegerAssignment implements Array<Integer>,Representation {
 
 
     @Override
-    public Representation clone() {
+    public IntegerAssignment copy() {
         return new IntegerAssignment(Arrays.copyOf(values,values.length));
     }
 
     @Override
-    public double distanceTo(Representation r) {
+    public double distanceTo(IntegerAssignment r) {
         IntegerAssignment ia = (IntegerAssignment) r;
         int dif=0;
 
@@ -84,7 +84,10 @@ public class IntegerAssignment implements Array<Integer>,Representation {
 
     @Override
     public List<Integer> getList() {
-        return new ArrayList(Arrays.asList(values));
+        List<Integer> list = new ArrayList<>(values.length);
+        for (int v : values)
+            list.add(v);
+        return list;
     }
 
     @Override
@@ -156,8 +159,8 @@ public class IntegerAssignment implements Array<Integer>,Representation {
     }
 
     @Override
-    public Array cloneArray() {
-        return (Array)clone();
+    public Array<Integer> cloneArray() {
+        return copy();
     }
 
 

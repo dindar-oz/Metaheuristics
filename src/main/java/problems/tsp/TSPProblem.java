@@ -2,7 +2,6 @@ package problems.tsp;
 
 import metaheuristic.aco.GraphProblem;
 import representation.IntegerPermutation;
-import representation.base.Representation;
 
 import java.util.Random;
 
@@ -54,8 +53,7 @@ public class TSPProblem implements GraphProblem {
     }
 
     @Override
-    public double cost(Representation r) {
-        IntegerPermutation tour = (IntegerPermutation) r;
+    public double cost(IntegerPermutation tour) {
         int n = tour.getLength();
         double length = 0;
         for (int i = 0; i < n; i++)
@@ -64,10 +62,7 @@ public class TSPProblem implements GraphProblem {
     }
 
     @Override
-    public boolean isFeasible(Representation r) {
-        if (!(r instanceof IntegerPermutation))
-            return false;
-        IntegerPermutation tour = (IntegerPermutation) r;
+    public boolean isFeasible(IntegerPermutation tour) {
         if (tour.getLength() != getCityCount())
             return false;
         boolean[] visited = new boolean[getCityCount()];

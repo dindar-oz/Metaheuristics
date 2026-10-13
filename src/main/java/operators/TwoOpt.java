@@ -4,6 +4,7 @@
  */
 package operators;
 
+import util.random.RNG;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,10 +17,5 @@ public class TwoOpt extends RandomSubListMutation{
     protected void mutateSubList(List<Integer> subList)
     {
         Collections.reverse(subList);
-    }
-
-    @Override
-    public int neighboringCount() {
-        return 1;
     }
 }

@@ -7,7 +7,7 @@ import representation.base.Representation;
 /**
  * Created by dindar.oz on 02.06.2015.
  */
-public class SDKRepresentation implements Representation{
+public class SDKRepresentation implements Representation<SDKRepresentation> {
 
     int blockSize = 3;
     int board[][] = null;
@@ -27,7 +27,7 @@ public class SDKRepresentation implements Representation{
     }
 
     @Override
-    public Representation clone() {
+    public SDKRepresentation copy() {
         int b[][] = new int[board.length][];
 
         for (int i=0;i<b.length;i++)

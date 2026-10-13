@@ -4,7 +4,7 @@ package metaheuristic.sa;
  * Created by dindar.oz on 16.06.2015.
  */
 public class LinearCooling implements CoolingSchedule {
-    double delta;
+    private final double delta;
 
     public LinearCooling(double delta) {
         this.delta = delta;
@@ -16,7 +16,7 @@ public class LinearCooling implements CoolingSchedule {
     }
 
     @Override
-    public void init() {
-
+    public String toString() {
+        return "linear(" + delta + ")";
     }
 }

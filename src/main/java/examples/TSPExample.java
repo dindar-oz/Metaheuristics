@@ -3,9 +3,8 @@ package examples;
 import base.InitialSolutionGenerator;
 import base.MutationOperator;
 import base.RandomPermutationSG;
-import base.TerminalCondition;
-import base.terminalcondition.NeighboringBasedTC;
 import experiments.ConsoleERH;
+import experiments.CsvERH;
 import experiments.Experiment;
 import experiments.ExperimentCase;
 import metaheuristic.aco.ACO;
@@ -15,12 +14,15 @@ import metaheuristic.ea.parentselector.TournamentParentSelector;
 import metaheuristic.ls.LocalSearch;
 import metaheuristic.sa.GeometricCooling;
 import metaheuristic.sa.SA;
+import metaheuristic.termination.EvaluationBasedTC;
+import metaheuristic.termination.TerminalCondition;
 import operators.RandomRemoveReinsert;
 import operators.TwoOpt;
 import problems.tsp.TSPProblem;
+import representation.IntegerPermutation;
 
+import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -28,35 +30,45 @@ import java.util.List;
  */
 public class TSPExample {
 
-    static final long MAX_EVALUATIONS = 50000;
+    static final TerminalCondition BUDGET = new EvaluationBasedTC(50000);
 
-    static List<ExperimentCase> createCases(TSPProblem problem) {
-        InitialSolutionGenerator isg = new RandomPermutationSG(problem.getCityCount());
-        List<MutationOperator> operators = Arrays.asList(new TwoOpt(), new RandomRemoveReinsert());
+    static List<ExperimentCase<IntegerPermutation, ?>> createCases(TSPProblem problem) {
+        InitialSolutionGenerator<IntegerPermutation> isg = new RandomPermutationSG(problem.getCityCount());
+        List<MutationOperator<IntegerPermutation>> operators = Arrays.asList(new TwoOpt(), new RandomRemoveReinsert<>());
 
-        EA ea = new EA(Collections.singletonList(new SimplePermutationCrossover()), operators,
-                new TournamentParentSelector(3, 2), budget());
+        EA<IntegerPermutation> ea = EA.builder(isg)
+                .crossovers(new SimplePermutationCrossover<>())
+                .mutations(operators)
+                .parentSelector(new TournamentParentSelector(3, 2))
+                .build();
 
-        SA sa = new SA(operators, new GeometricCooling(0.995), 1.0, 1e-6, budget());
-        sa.setInnerLoopLength(20);
+        SA<IntegerPermutation> sa = SA.builder(operators, isg)
+                .cooling(new GeometricCooling(0.995))
+                .initialTemperature(1.0)
+                .minimumTemperature(1e-6)
+                .innerLoopLength(20)
+                .build();
 
-        LocalSearch ls = new LocalSearch(operators, 5000, budget());
+        LocalSearch<IntegerPermutation> ls = LocalSearch.builder(operators, isg).maxNonImproving(5000).build();
 
-        ACO aco = new ACO(20, budget());
+        ACO aco = ACO.builder().antCount(20).build();
 
         return Arrays.asList(
-                new ExperimentCase("EA", ea, problem, isg),
-                new ExperimentCase("SA", sa, problem, isg),
-                new ExperimentCase("LocalSearch", ls, problem, isg),
-                new ExperimentCase("ACO", aco, problem, isg));
-    }
-
-    static TerminalCondition budget() {
-        return new NeighboringBasedTC(MAX_EVALUATIONS);
+                ExperimentCase.of("EA", ea, problem),
+                ExperimentCase.of("SA", sa, problem),
+                ExperimentCase.of("LocalSearch", ls, problem),
+                ExperimentCase.of("ACO", aco, problem));
     }
 
     public static void main(String[] args) {
         TSPProblem problem = TSPProblem.randomEuclidean(50, 42);
-        new Experiment(createCases(problem), 5, Collections.singletonList(new ConsoleERH())).run();
+        Experiment.of(createCases(problem))
+                .repeats(5)
+                .seed(42)
+                .stopWhen(BUDGET)
+                .threads(Runtime.getRuntime().availableProcessors())
+                .handler(new ConsoleERH())
+                .handler(new CsvERH(Paths.get("results", "tsp.csv")))
+                .run();
     }
 }

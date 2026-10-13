@@ -1,56 +1,62 @@
 package metaheuristic.ea;
 
 import base.MutationOperator;
-import base.OptimizationProblem;
 import metaheuristic.ea.base.MutationStrategy;
-import representation.AgeingIndividual;
+import metaheuristic.ea.base.EAContext;
 import representation.base.Individual;
 import representation.base.Population;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 import java.util.List;
-import java.util.function.ToDoubleFunction;
 
 /**
- * With the given probability, replaces mutationCount random individuals with a mutant of themselves.
+ * With the given probability, replaces mutationCount random individuals with a mutant of themselves
+ * (a mutant whose representation is already in the population is discarded unless allowRepetition).
  */
 public class SimpleMutationStrategy implements MutationStrategy {
 
     private final double mutationProbability;
     private final int mutationCount;
-    private boolean allowRepetition = false;
+    private final boolean allowRepetition;
 
-    public SimpleMutationStrategy(double mutationProbability, int mutationCount) {
+    public SimpleMutationStrategy(double mutationProbability, int mutationCount, boolean allowRepetition) {
         this.mutationProbability = mutationProbability;
         this.mutationCount = mutationCount;
+        this.allowRepetition = allowRepetition;
+    }
+
+    public SimpleMutationStrategy(double mutationProbability, int mutationCount) {
+        this(mutationProbability, mutationCount, false);
     }
 
     public SimpleMutationStrategy(double mutationProbability) {
         this(mutationProbability, 1);
     }
 
-    public void setAllowRepetition(boolean allowRepetition) {
-        this.allowRepetition = allowRepetition;
-    }
-
     @Override
-    public void applyMutations(OptimizationProblem problem, Population population, List<MutationOperator> mutationOperators,
-                               ToDoubleFunction<Representation> evaluator) {
-        if (mutationOperators.isEmpty() || !RandUtil.rollDice(mutationProbability))
+    public <S extends Representation<S>> void applyMutations(Population<S> population, List<MutationOperator<S>> mutationOperators,
+                                                             EAContext<S> ctx) {
+        RNG rng = ctx.rng();
+        if (mutationOperators.isEmpty() || !rng.rollDice(mutationProbability))
             return;
 
-        for (int i = 0; i < mutationCount; i++) {
-            Individual victim = population.get(RandUtil.randInt(population.size()));
-            MutationOperator mo = mutationOperators.get(RandUtil.randInt(mutationOperators.size()));
+        for (int i = 0; i < mutationCount && !ctx.shouldStop(); i++) {
+            Individual<S> victim = population.get(rng.randInt(population.size()));
+            MutationOperator<S> mo = mutationOperators.get(rng.randInt(mutationOperators.size()));
 
-            Representation mutantRep = mo.apply(problem, victim.getRepresentation());
-            Individual mutant = new AgeingIndividual(mutantRep, evaluator.applyAsDouble(mutantRep));
+            S mutantRep = mo.apply(victim.getRepresentation(), rng);
+            Individual<S> mutant = ctx.evaluate(mutantRep);
 
-            if (allowRepetition || !population.contains(mutant)) {
+            if (allowRepetition || !population.containsRepresentation(mutantRep)) {
                 population.remove(victim);
                 population.add(mutant);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "mutation(p=" + mutationProbability + ", count=" + mutationCount + ")";
     }
 }

@@ -1,13 +1,15 @@
 package metaheuristic.ea.base;
 
-import base.OptimizationProblem;
+import representation.base.Representation;
 import representation.base.Individual;
+import util.random.RNG;
 
 import java.util.List;
 
 /**
- * Created by dindar.oz on 11.06.2015.
+ * Selects the individuals to be removed from the population. Must not modify the given list
+ * and must keep no mutable state.
  */
 public interface VictimSelector {
-    List<Individual> selectVictims(OptimizationProblem problem, List<Individual> population,int victimCount);
+    <S extends Representation<S>> List<Individual<S>> selectVictims(List<Individual<S>> population, int victimCount, RNG rng);
 }

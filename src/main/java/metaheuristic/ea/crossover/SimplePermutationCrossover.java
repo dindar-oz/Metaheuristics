@@ -1,7 +1,6 @@
 package metaheuristic.ea.crossover;
 
-import base.OptimizationProblem;
-import exceptions.WrongIndividualType;
+import util.random.RNG;
 import metaheuristic.ea.base.CrossOverOperator;
 import representation.*;
 import representation.base.Array;
@@ -19,34 +18,31 @@ import java.util.List;
  * Keeps the first half of the first parent and fills the rest with the missing elements
  * in the order they appear in the second parent. Works for permutations of any element values.
  */
-public class SimplePermutationCrossover implements CrossOverOperator {
+public class SimplePermutationCrossover<E, S extends Representation<S> & Array<E>> implements CrossOverOperator<S> {
     @Override
-    public List<Representation> apply(OptimizationProblem problem, Representation i1, Representation i2) {
+    public List<S> apply(S i1, S i2, RNG rng) {
 
-        if (!(i1 instanceof Array) || !(i2 instanceof Array))
-            throw new WrongIndividualType("SimplePermutationCrossover can only be applied to permutations");
-
-        Array p1 = (Array)i1;
-        Array p2 = (Array)i2;
-        Array p3 = (Array)i1.clone();
+        S p1 = i1;
+        S p2 = i2;
+        S p3 = i1.copy();
 
         int n = p1.getLength();
         int half = n/2;
 
-        Set<Object> kept = new HashSet<>();
+        Set<E> kept = new HashSet<>();
         for (int i = 0; i < half; i++)
             kept.add(p1.get(i));
 
         int pos = half;
         for (int i = 0; i < n; i++)
         {
-            Object v = p2.get(i);
+            E v = p2.get(i);
             if (!kept.contains(v))
                 p3.set(pos++, v);
         }
 
-        List<Representation> offsprings = new ArrayList<Representation>();
-        offsprings.add((Representation)p3);
+        List<S> offsprings = new ArrayList<>();
+        offsprings.add(p3);
 
         return offsprings;
     }

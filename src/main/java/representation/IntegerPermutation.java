@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Created by dindar.oz on 28.05.2015.
  */
-public class IntegerPermutation implements Permutation<Integer>,Representation {
+public class IntegerPermutation implements Permutation<Integer>, Representation<IntegerPermutation> {
 
     Integer [] values;
 
@@ -41,7 +41,7 @@ public class IntegerPermutation implements Permutation<Integer>,Representation {
 
 
     @Override
-    public Representation clone() {
+    public IntegerPermutation copy() {
         Integer q[] = new Integer[values.length];
         for (int i =0 ; i<q.length;i++)
         {
@@ -68,7 +68,7 @@ public class IntegerPermutation implements Permutation<Integer>,Representation {
     }
 
     @Override
-    public double distanceTo(Representation r) {
+    public double distanceTo(IntegerPermutation r) {
         IntegerPermutation ip = (IntegerPermutation)r;
 
         int d=0;
@@ -88,7 +88,7 @@ public class IntegerPermutation implements Permutation<Integer>,Representation {
 
     @Override
     public List<Integer> getList() {
-        return new ArrayList(Arrays.asList(values));
+        return new ArrayList<>(Arrays.asList(values));
     }
 
     @Override
@@ -155,8 +155,8 @@ public class IntegerPermutation implements Permutation<Integer>,Representation {
     }
 
     @Override
-    public Array cloneArray() {
-        return (Array)clone();
+    public Array<Integer> cloneArray() {
+        return copy();
     }
 
     @Override

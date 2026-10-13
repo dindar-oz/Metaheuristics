@@ -7,7 +7,7 @@ import java.util.Arrays;
 /**
  * Created by dindar.oz on 6/23/2017.
  */
-public class IntegerMatrix implements Representation {
+public class IntegerMatrix implements Representation<IntegerMatrix> {
 
     int rowCount;
 
@@ -38,7 +38,7 @@ public class IntegerMatrix implements Representation {
     }
 
     @Override
-    public Representation clone() {
+    public IntegerMatrix copy() {
 
         int m[][] = new int[rowCount][];
 
@@ -49,7 +49,7 @@ public class IntegerMatrix implements Representation {
     }
 
     @Override
-    public double distanceTo(Representation r) {
+    public double distanceTo(IntegerMatrix r) {
         return 0;
     }
 }

@@ -1,47 +1,45 @@
 package operators;
 
-import base.OptimizationProblem;
 import base.MutationOperator;
 import representation.IntegerPermutation;
 import representation.base.Array;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 import java.util.List;
 
 /**
  * Created by dindar.oz on 28.05.2015.
  */
-public class MoveSubSequence implements MutationOperator {
+public class MoveSubSequence<E, S extends Representation<S> & Array<E>> implements MutationOperator<S> {
 
     public static final int DEFAULT_SHORTEST_MOVE = 5;
     public static final int DEFAULT_LONGEST_MOVE = 10;
 
-    int shortestMoveLength =DEFAULT_SHORTEST_MOVE;
-    int longestMoveLength = DEFAULT_LONGEST_MOVE;
+    private final int shortestMoveLength;
+    private final int longestMoveLength;
 
     public MoveSubSequence() {
+        this(DEFAULT_SHORTEST_MOVE, DEFAULT_LONGEST_MOVE);
     }
 
     public MoveSubSequence(int shortestMoveLength, int longestMoveLength) {
+        if (shortestMoveLength < 1 || longestMoveLength < shortestMoveLength)
+            throw new IllegalArgumentException("need 1 <= shortestMoveLength <= longestMoveLength");
         this.shortestMoveLength = shortestMoveLength;
         this.longestMoveLength = longestMoveLength;
     }
 
 
-    public static List moveSubSequence(List list, int startIndex, int subsequenceLength, int moveLength)
+    public static <T> List<T> moveSubSequence(List<T> list, int startIndex, int subsequenceLength, int moveLength)
     {
-        Object startElement = list.get(startIndex);
+        T startElement = list.get(startIndex);
         int endIndex = (startIndex + subsequenceLength -1) % list.size();
-        Object endElement = list.get(endIndex);
-
-        //System.out.println("start: "+startIndex);
-        //System.out.println("sub len: "+subsequenceLength);
-        //System.out.println("move len: "+moveLength);
+        T endElement = list.get(endIndex);
 
 
         int removedIndex;
-        Object removedElement,lastElement;
+        T removedElement, lastElement;
 
         for (int i=0;i<moveLength;i++)
         {
@@ -64,27 +62,27 @@ public class MoveSubSequence implements MutationOperator {
     }
 
     @Override
-    public Representation apply(OptimizationProblem problem, Representation r) {
+    public S apply(S r, RNG rng) {
 
-        Array ni = (Array) r.clone();
+        S ni = r.copy();
 
-        List list = ni.getList();
+        List<E> list = ni.getList();
 
 
-        int subsequenceLength = shortestMoveLength + RandUtil.randInt(longestMoveLength-shortestMoveLength+1);
-        int moveLength = RandUtil.randInt(ni.getLength());
-        int startIndex = RandUtil.randInt(ni.getLength());
+        int subsequenceLength = shortestMoveLength + rng.randInt(longestMoveLength-shortestMoveLength+1);
+        int moveLength = rng.randInt(ni.getLength());
+        int startIndex = rng.randInt(ni.getLength());
 
         moveSubSequence(list,startIndex,subsequenceLength,moveLength);
 
         ni.setList(list);
 
-        return (Representation) ni;
+        return ni;
 
      }
 
     @Override
-    public int neighboringCount() {
-        return 1;
+    public String toString() {
+        return "MoveSubSequence(" + shortestMoveLength + ".." + longestMoveLength + ")";
     }
 }

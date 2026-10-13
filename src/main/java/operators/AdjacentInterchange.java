@@ -1,36 +1,27 @@
 package operators;
 
-import base.OptimizationProblem;
-import exceptions.WrongIndividualType;
 import base.MutationOperator;
 import representation.base.Array;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 /**
  * Created by dindar.oz on 28.05.2015.
  */
-public class AdjacentInterchange implements MutationOperator {
+public class AdjacentInterchange<E, S extends Representation<S> & Array<E>> implements MutationOperator<S> {
     @Override
-    public Representation apply(OptimizationProblem problem, Representation r) {
-        if (!(r instanceof Array))
-            throw new WrongIndividualType("AdjacentInterchange can only be applied to permutation");
+    public S apply(S r, RNG rng) {
 
-        Array p = (Array)r;
+        S p = r;
 
-        int n1 = RandUtil.randInt(p.getLength());
-        int n2 = (p.getLength()+1)%p.getLength();
+        int n1 = rng.randInt(p.getLength());
+        int n2 = (n1+1)%p.getLength();
 
-        Array ni =(Array) r.clone();
+        S ni = r.copy();
 
         ni.swap(n1,n2);
 
 
-        return (Representation)ni;
-    }
-
-    @Override
-    public int neighboringCount() {
-        return 1;
+        return ni;
     }
 }

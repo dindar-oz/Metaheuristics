@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Created by dindar.oz on 15.07.2015.
  */
-public class IntegerVector implements Array<Integer>,Representation {
+public class IntegerVector implements Array<Integer>, Representation<IntegerVector> {
 
     List<Integer>  values;
 
@@ -24,7 +24,7 @@ public class IntegerVector implements Array<Integer>,Representation {
     }
 
     @Override
-    public Representation clone() {
+    public IntegerVector copy() {
         List<Integer> newList = new ArrayList<>();
         for (Integer i:values)
         {
@@ -34,7 +34,7 @@ public class IntegerVector implements Array<Integer>,Representation {
     }
 
     @Override
-    public double distanceTo(Representation r) {
+    public double distanceTo(IntegerVector r) {
         IntegerVector ia = (IntegerVector) r;
         int dif=0;
 
@@ -162,8 +162,8 @@ public class IntegerVector implements Array<Integer>,Representation {
     }
 
     @Override
-    public Array cloneArray() {
-        return (Array)clone();
+    public Array<Integer> cloneArray() {
+        return copy();
     }
 
 

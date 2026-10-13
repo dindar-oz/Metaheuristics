@@ -1,49 +1,47 @@
 package metaheuristic.ea.crossover;
 
-import base.OptimizationProblem;
 import metaheuristic.ea.base.CrossOverOperator;
 import metaheuristic.ea.base.CrossOverStrategy;
-import representation.AgeingIndividual;
-import representation.SimpleIndividual;
+import metaheuristic.ea.base.EAContext;
 import representation.base.Individual;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.ToDoubleFunction;
 
 /**
- * Created by dindar.oz on 11.06.2015.
+ * With the given rate, pairs up consecutive parents and applies a random crossover operator to each pair.
  */
 public class SimpleCrossOverStrategy implements CrossOverStrategy {
-
-
-    private double crossOverRate;
+    private final double crossOverRate;
 
     public SimpleCrossOverStrategy(double crossOverRate) {
         this.crossOverRate = crossOverRate;
     }
 
     @Override
-    public List<Individual> generateOffsprings(OptimizationProblem problem, List<Individual> parents, List<CrossOverOperator> crossOverOperators, ToDoubleFunction<Representation> evaluator) {
-        List<Individual> offSprings= new ArrayList<Individual>();
+    public <S extends Representation<S>> List<Individual<S>> generateOffsprings(List<Individual<S>> parents,
+                                                                             List<CrossOverOperator<S>> crossOverOperators,
+                                                                             EAContext<S> ctx) {
+        RNG rng = ctx.rng();
+        List<Individual<S>> offsprings = new ArrayList<>();
+        if (!rng.rollDice(crossOverRate))
+            return offsprings;
 
-        if (RandUtil.rollDice(crossOverRate))
-        {
-            int offspringCount = parents.size()/2;
-            for (int p =0; p<offspringCount;p++)
-            {
-                CrossOverOperator co = crossOverOperators.get(RandUtil.randInt(crossOverOperators.size()));
-                Representation p1 = parents.get(2*p).getRepresentation();
-                Representation p2 = parents.get(2*p+1).getRepresentation();
-                List<Representation> oList = co.apply(problem,p1, p2);
-                for (Representation r : oList) {
-                    offSprings.add(new AgeingIndividual(r, evaluator.applyAsDouble(r)));
-                }
+        for (int p = 0; p + 1 < parents.size(); p += 2) {
+            CrossOverOperator<S> co = crossOverOperators.get(rng.randInt(crossOverOperators.size()));
+            for (S r : co.apply(parents.get(p).getRepresentation(), parents.get(p + 1).getRepresentation(), rng)) {
+                if (ctx.shouldStop())
+                    return offsprings;
+                offsprings.add(ctx.evaluate(r));
             }
         }
+        return offsprings;
+    }
 
-        return offSprings;
+    @Override
+    public String toString() {
+        return "crossover(rate=" + crossOverRate + ")";
     }
 }

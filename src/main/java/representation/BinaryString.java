@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class BinaryString implements Representation, Array<Character> {
+public class BinaryString implements Representation<BinaryString>, Array<Character> {
 
     String code;
 
@@ -20,12 +20,12 @@ public class BinaryString implements Representation, Array<Character> {
     }
 
     @Override
-    public Representation clone() {
+    public BinaryString copy() {
         return new BinaryString(code);
     }
 
     @Override
-    public double distanceTo(Representation r) {
+    public double distanceTo(BinaryString r) {
         if (!(r instanceof BinaryString))
             return Double.NEGATIVE_INFINITY;
         String oCode = ((BinaryString)r).code;
@@ -143,7 +143,7 @@ public class BinaryString implements Representation, Array<Character> {
 
     @Override
     public Array<Character> cloneArray() {
-        return (Array<Character>) clone();
+        return copy();
     }
 
     public String toBinaryString() {

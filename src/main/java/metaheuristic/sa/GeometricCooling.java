@@ -3,8 +3,8 @@ package metaheuristic.sa;
 /**
  * Created by dindar.oz on 16.06.2015.
  */
-public class GeometricCooling implements CoolingSchedule{
-    double alpha;
+public class GeometricCooling implements CoolingSchedule {
+    private final double alpha;
 
     public GeometricCooling(double alpha) {
         this.alpha = alpha;
@@ -16,7 +16,7 @@ public class GeometricCooling implements CoolingSchedule{
     }
 
     @Override
-    public void init() {
-
+    public String toString() {
+        return "geometric(" + alpha + ")";
     }
 }

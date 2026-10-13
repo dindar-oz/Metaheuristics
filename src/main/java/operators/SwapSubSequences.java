@@ -1,11 +1,10 @@
 package operators;
 
-import base.OptimizationProblem;
 import base.MutationOperator;
 import representation.IntegerPermutation;
 import representation.base.Array;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,17 +12,17 @@ import java.util.List;
 /**
  * Created by dindar.oz on 28.05.2015.
  */
-public class SwapSubSequences implements MutationOperator {
+public class SwapSubSequences<E, S extends Representation<S> & Array<E>> implements MutationOperator<S> {
 
     public static final int DEFAULT_SHORTEST_MOVE = 5;
     public static final int DEFAULT_LONGEST_MOVE = 10;
 
-    int shortestMoveLength =DEFAULT_SHORTEST_MOVE;
-    int longestMoveLength = DEFAULT_LONGEST_MOVE;
-    boolean toBeReversed = false;
+    private final int shortestMoveLength;
+    private final int longestMoveLength;
+    private final boolean toBeReversed;
 
     public SwapSubSequences(boolean tbr) {
-        toBeReversed = tbr;
+        this(DEFAULT_SHORTEST_MOVE, DEFAULT_LONGEST_MOVE, tbr);
     }
 
 
@@ -34,10 +33,10 @@ public class SwapSubSequences implements MutationOperator {
     }
 
     @Override
-    public Representation apply(OptimizationProblem problem, Representation r) {
+    public S apply(S r, RNG rng) {
 
-        Array ni = (Array) r.clone();
-        List list = ni.getList();
+        S ni = r.copy();
+        List<E> list = ni.getList();
 
         int leftStartIndex = 0, leftEndIndex, rightStartIndex, rightEndIndex, permutationLength = list.size();
 
@@ -47,14 +46,14 @@ public class SwapSubSequences implements MutationOperator {
 
         int leftSubsequenceLength, rightSubsequenceLength;
 
-        leftSubsequenceLength = shortestMoveLength + RandUtil.randInt(longestMoveLength-shortestMoveLength+1);
-        rightSubsequenceLength = shortestMoveLength + RandUtil.randInt(longestMoveLength-shortestMoveLength+1);
+        leftSubsequenceLength = shortestMoveLength + rng.randInt(longestMoveLength-shortestMoveLength+1);
+        rightSubsequenceLength = shortestMoveLength + rng.randInt(longestMoveLength-shortestMoveLength+1);
 
-        int leftSubsequenceStartIndex = (int)Math.round((leftEndIndex-leftSubsequenceLength+1)*Math.random());
-        int rightSubsequenceStartIndex = rightStartIndex + (int)Math.round((rightEndIndex-rightStartIndex+1-rightSubsequenceLength)*Math.random());
+        int leftSubsequenceStartIndex = (int)Math.round((leftEndIndex-leftSubsequenceLength+1)*rng.randDouble());
+        int rightSubsequenceStartIndex = rightStartIndex + (int)Math.round((rightEndIndex-rightStartIndex+1-rightSubsequenceLength)*rng.randDouble());
 
-        ArrayList<Object> leftSubsequence = new ArrayList(leftSubsequenceLength);
-        ArrayList<Object> rightSubsequence = new ArrayList(rightSubsequenceLength);
+        List<E> leftSubsequence = new ArrayList<>(leftSubsequenceLength);
+        List<E> rightSubsequence = new ArrayList<>(rightSubsequenceLength);
 
         if(!toBeReversed){
             for(int i=0; i<leftSubsequenceLength; i++){
@@ -93,12 +92,12 @@ public class SwapSubSequences implements MutationOperator {
 
         ni.setList(list);
 
-        return (Representation) ni;
+        return ni;
 
      }
 
     @Override
-    public int neighboringCount() {
-        return 1;
+    public String toString() {
+        return "SwapSubSequences(" + shortestMoveLength + ".." + longestMoveLength + (toBeReversed ? ", reversed" : "") + ")";
     }
 }

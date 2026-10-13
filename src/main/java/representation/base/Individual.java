@@ -1,16 +1,47 @@
 package representation.base;
 
+import java.util.Comparator;
+
 /**
- * Created by dindar.oz on 22.04.2015.
+ * An evaluated solution. Immutable: its representation must not be modified after the individual is created
+ * (operators always return new representations), so individuals can be shared freely.
  */
-public interface Individual {
-    double getCost();
-    Representation getRepresentation();
+public final class Individual<S extends Representation<S>> {
 
-    Individual clone();
+    public static final Comparator<Individual<?>> BY_COST = Comparator.comparingDouble(Individual::getCost);
 
-    void update(Representation rep,double cost);
+    private final S representation;
+    private final double cost;
+    private final long birthGeneration;
 
-    default int getAge() {return 0;} // By default we ageing
-    default void age(){};
+    public Individual(S representation, double cost, long birthGeneration) {
+        this.representation = representation;
+        this.cost = cost;
+        this.birthGeneration = birthGeneration;
+    }
+
+    public Individual(S representation, double cost) {
+        this(representation, cost, 0);
+    }
+
+    public S getRepresentation() {
+        return representation;
+    }
+
+    public double getCost() {
+        return cost;
+    }
+
+    public long getBirthGeneration() {
+        return birthGeneration;
+    }
+
+    public long getAge(long currentGeneration) {
+        return currentGeneration - birthGeneration;
+    }
+
+    @Override
+    public String toString() {
+        return "Cost: " + cost + "  " + representation;
+    }
 }

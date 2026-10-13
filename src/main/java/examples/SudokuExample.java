@@ -1,23 +1,23 @@
 package examples;
 
 import base.MutationOperator;
-import base.TerminalCondition;
-import base.terminalcondition.CostBasedTC;
-import base.terminalcondition.NeighboringBasedTC;
 import experiments.ConsoleERH;
 import experiments.Experiment;
 import experiments.ExperimentCase;
 import metaheuristic.ea.EA;
-import metaheuristic.ea.parentselector.CostBasedParentSelector;
+import metaheuristic.ea.hook.ImmigrationHook;
 import metaheuristic.sa.GeometricCooling;
 import metaheuristic.sa.SA;
+import metaheuristic.termination.CostBasedTC;
+import metaheuristic.termination.EvaluationBasedTC;
+import metaheuristic.termination.TerminalCondition;
 import problems.sudoku.PlacementMutation;
 import problems.sudoku.RandomSDKProblemSG;
 import problems.sudoku.RemovalMutation;
 import problems.sudoku.SDKProblem;
+import problems.sudoku.SDKRepresentation;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -35,21 +35,29 @@ public class SudokuExample {
         initialBoard[5][6] = 4;
 
         SDKProblem problem = new SDKProblem(3, initialBoard);
-        RandomSDKProblemSG isg = new RandomSDKProblemSG();
-        List<MutationOperator> operators = Arrays.asList(new PlacementMutation(), new RemovalMutation());
+        RandomSDKProblemSG isg = new RandomSDKProblemSG(problem);
+        List<MutationOperator<SDKRepresentation>> operators =
+                Arrays.asList(new PlacementMutation(problem), new RemovalMutation(problem));
 
-        EA ea = new EA(Collections.emptyList(), operators, new CostBasedParentSelector(2), budget());
-        ea.setImmigrationPeriod(10000);
+        EA<SDKRepresentation> ea = EA.builder(isg)
+                .mutations(operators)
+                .hook(new ImmigrationHook<>(10000, 20))
+                .build();
 
-        SA sa = new SA(operators, new GeometricCooling(0.999), 100, 1e-5, budget());
+        SA<SDKRepresentation> sa = SA.builder(operators, isg)
+                .cooling(new GeometricCooling(0.999))
+                .initialTemperature(100)
+                .minimumTemperature(1e-5)
+                .build();
 
-        new Experiment(Arrays.asList(
-                new ExperimentCase("EA", ea, problem, isg),
-                new ExperimentCase("SA", sa, problem, isg)),
-                3, Collections.singletonList(new ConsoleERH())).run();
-    }
-
-    static TerminalCondition budget() {
-        return TerminalCondition.anyOf(new NeighboringBasedTC(200000), new CostBasedTC(0));
+        Experiment.of(
+                        ExperimentCase.of("EA", ea, problem),
+                        ExperimentCase.of("SA", sa, problem))
+                .repeats(3)
+                .seed(42)
+                .stopWhen(TerminalCondition.anyOf(new EvaluationBasedTC(200000), new CostBasedTC(0)))
+                .threads(Runtime.getRuntime().availableProcessors())
+                .handler(new ConsoleERH())
+                .run();
     }
 }

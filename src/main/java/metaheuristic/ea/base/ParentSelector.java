@@ -1,13 +1,14 @@
 package metaheuristic.ea.base;
 
-import base.OptimizationProblem;
+import representation.base.Representation;
 import representation.base.Individual;
+import util.random.RNG;
 
 import java.util.List;
 
 /**
- * Created by dindar.oz on 28.05.2015.
+ * Selects parents for crossover. Must not modify the given list and must keep no mutable state.
  */
 public interface ParentSelector {
-    public List<Individual> selectParents(OptimizationProblem problem, List<Individual> population);
+    <S extends Representation<S>> List<Individual<S>> selectParents(List<Individual<S>> population, RNG rng);
 }

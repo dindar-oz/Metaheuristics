@@ -1,12 +1,10 @@
 package operators;
 
-import base.OptimizationProblem;
-import exceptions.WrongIndividualType;
 import base.MutationOperator;
 import representation.IntegerPermutation;
 import representation.base.Array;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 /**
  * Created by dindar.oz on 28.05.2015.
@@ -23,43 +21,36 @@ import util.random.RandUtil;
  * this mutation scheme is applied insertionCount times
  *
   */
-public class InsertMutation implements MutationOperator {
+public class InsertMutation<E, S extends Representation<S> & Array<E>> implements MutationOperator<S> {
 
-    int insertionCount;
+    private final int insertionCount;
 
     public InsertMutation(int insertionCount) {
         this.insertionCount = insertionCount;
     }
 
     @Override
-    public Representation apply(OptimizationProblem problem, Representation r) {
-        if (!(r instanceof Array) )
-            throw new WrongIndividualType("Insert can only be applied to array");
+    public S apply(S r, RNG rng) {
 
 
-        Array ni =(Array) r.clone();
+        S ni = r.copy();
         for (int i =0;i<insertionCount;i++)
         {
-            doInsertion(ni);
+            doInsertion(ni, rng);
         }
 
 
-        return (Representation)ni;
+        return ni;
     }
 
-    @Override
-    public int neighboringCount() {
-        return 1;
-    }
-
-    private void doInsertion(Array ni) {
+    private void doInsertion(S ni, RNG rng) {
         int len= ni.getLength();
 
-        int n1 = RandUtil.randInt(len);
-        int n2 = RandUtil.randInt(len);
+        int n1 = rng.randInt(len);
+        int n2 = rng.randInt(len);
 
         while (n2 == n1)
-            n2 = RandUtil.randInt(len);
+            n2 = rng.randInt(len);
 
 
         if (n2==(n1-1))
@@ -80,5 +71,10 @@ public class InsertMutation implements MutationOperator {
                 ni.swap(i,i-1);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "InsertMutation(" + insertionCount + ")";
     }
 }

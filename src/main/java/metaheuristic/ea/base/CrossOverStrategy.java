@@ -1,17 +1,16 @@
 package metaheuristic.ea.base;
 
-import base.OptimizationProblem;
-import representation.base.Individual;
 import representation.base.Representation;
+import representation.base.Individual;
 
 import java.util.List;
-import java.util.function.ToDoubleFunction;
 
 /**
  * Decides how the crossover operators produce offsprings from the selected parents.
- * Offsprings must be scored with the given evaluator so that the EA can count evaluations.
+ * Offsprings are created with ctx.evaluate(); randomness comes from ctx.rng(). Must keep no mutable state.
  */
 public interface CrossOverStrategy {
-    List<Individual> generateOffsprings(OptimizationProblem problem, List<Individual> parents, List<CrossOverOperator> crossOverOperators,
-                                        ToDoubleFunction<Representation> evaluator);
+    <S extends Representation<S>> List<Individual<S>> generateOffsprings(List<Individual<S>> parents,
+                                                                      List<CrossOverOperator<S>> crossOverOperators,
+                                                                      EAContext<S> ctx);
 }

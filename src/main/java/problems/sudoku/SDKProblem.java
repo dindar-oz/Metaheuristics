@@ -6,26 +6,27 @@ import representation.base.Representation;
 /**
  * Created by dindar.oz on 02.06.2015.
  */
-public class SDKProblem implements OptimizationProblem {
+public class SDKProblem implements OptimizationProblem<SDKRepresentation> {
 
     private static final double COLLISION_PENALTY = 100;
     private static final double PLACEMENT_BONUS = 50;
-    int blockSize=0;
-    int [][] initialBoard;
+    final int blockSize;
+    final int[][] initialBoard; // never modified after construction
 
     public SDKProblem(int blockSize, int[][] initialBoard) {
         this.blockSize = blockSize;
-        this.initialBoard = initialBoard;
+        this.initialBoard = new int[initialBoard.length][];
+        for (int i = 0; i < initialBoard.length; i++)
+            this.initialBoard[i] = initialBoard[i].clone();
     }
 
 
     @Override
-    public double cost(Representation r)  {
+    public double cost(SDKRepresentation si) {
         double penalty = blockSize*blockSize*blockSize*blockSize* PLACEMENT_BONUS;
         int placement = 0;
         
-        SDKRepresentation si = (SDKRepresentation)r;
-        int board[][] = si.getBoard();
+                int board[][] = si.getBoard();
         
         for (int x = 0; x<blockSize*blockSize ;x++)
         {
@@ -86,10 +87,8 @@ public class SDKProblem implements OptimizationProblem {
     }
 
     @Override
-    public boolean isFeasible(Representation r)
-    {
-        SDKRepresentation si = (SDKRepresentation)r;
-        int board[][] = si.getBoard();
+    public boolean isFeasible(SDKRepresentation si) {
+                int board[][] = si.getBoard();
 
         for (int x = 0; x<blockSize*blockSize ;x++)
         {

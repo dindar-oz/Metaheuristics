@@ -1,13 +1,11 @@
 package metaheuristic.ea.crossover;
 
-import base.OptimizationProblem;
-import exceptions.WrongIndividualType;
 import metaheuristic.ea.base.CrossOverOperator;
 import representation.IntegerPermutation;
 import representation.base.Array;
 import representation.base.Permutation;
 import representation.base.Representation;
-import util.random.RandUtil;
+import util.random.RNG;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,23 +33,20 @@ import java.util.List;
  * O1:    3,5,2,1,4
  * O2:    1,4,3,5,2
   */
-public class PTLCutCrossover implements CrossOverOperator {
+public class PTLCutCrossover<E, S extends Representation<S> & Permutation<E>> implements CrossOverOperator<S> {
     @Override
-    public List<Representation> apply(OptimizationProblem problem, Representation i1, Representation i2) {
+    public List<S> apply(S i1, S i2, RNG rng) {
 
-        if (!(i1 instanceof Permutation) || !(i2 instanceof Permutation))
-            throw new WrongIndividualType("Swap can only be applied to permutation");
+        S p1 = i1;
+        S p2 = i2;
 
-        Array p1 = (Array)i1;
-        Array p2 = (Array)i2;
+        S p3 = i2.copy();
+        S p4 = i2.copy();
 
-        Array p3 = p2.cloneArray();
-        Array p4 = p2.cloneArray();
-
-        int  r1= RandUtil.randInt(p3.getLength());
-        int  r2= RandUtil.randInt(p3.getLength());
+        int  r1= rng.randInt(p3.getLength());
+        int  r2= rng.randInt(p3.getLength());
         while (r2 == r1)
-            r2 = RandUtil.randInt(p3.getLength());
+            r2 = rng.randInt(p3.getLength());
 
         if (r1>r2)
         {
@@ -60,13 +55,10 @@ public class PTLCutCrossover implements CrossOverOperator {
             r1 = r1-r2;
         }
 
-        int offset = (RandUtil.rollDice(0.5)) ? 0:(p3.getLength()-(r2-r1+1));
+        int offset = (rng.rollDice(0.5)) ? 0:(p3.getLength()-(r2-r1+1));
         for (int i=r1;i<=r2;i++)
         {
             p3.set(p3.firstOf(p1.get(i)), null);
-            if (offset==146) {
-                boolean aha = true;
-            }
             p4.set(offset++, p1.get(i));
         }
         offset = (offset == r2-r1+1) ? offset:0;
@@ -78,8 +70,8 @@ public class PTLCutCrossover implements CrossOverOperator {
             }
         }
 
-        List<Representation> offsprings = new ArrayList<Representation>();
-        offsprings.add((Representation)p4);
+        List<S> offsprings = new ArrayList<>();
+        offsprings.add(p4);
 
         return offsprings;
     }

@@ -14,7 +14,7 @@ import java.util.stream.DoubleStream;
 /**
  * Created by dindar.oz on 03.06.2015.
  */
-public class DoubleVector implements Representation, Array<Double> {
+public class DoubleVector implements Representation<DoubleVector>, Array<Double> {
 
     double[] values;
 
@@ -40,7 +40,7 @@ public class DoubleVector implements Representation, Array<Double> {
     }
 
     @Override
-    public Representation clone() {
+    public DoubleVector copy() {
         double q[] = new double[values.length];
         for (int i =0 ; i<q.length;i++)
         {
@@ -66,7 +66,7 @@ public class DoubleVector implements Representation, Array<Double> {
     }
 
     @Override
-    public double distanceTo(Representation r) {
+    public double distanceTo(DoubleVector r) {
 
         DoubleVector dv = (DoubleVector)r;
         double sum =0;
@@ -174,7 +174,7 @@ public class DoubleVector implements Representation, Array<Double> {
 
     @Override
     public Array<Double> cloneArray() {
-        return (Array<Double>) clone();
+        return copy();
     }
 
     @Override
