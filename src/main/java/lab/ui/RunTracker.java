@@ -65,6 +65,11 @@ public final class RunTracker implements SearchListener {
         return run.viewBestSolution();
     }
 
+    // Swing thread only: the solution viewBestSolution shows now; a new object once a better one is found
+    Object bestSolution() {
+        return run.bestSolution();
+    }
+
     void setStartError(String message) {
         this.startError = message;
     }

@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +32,8 @@ import java.util.concurrent.Executors;
 public final class LabFrame extends JFrame {
 
     private static final int REFRESH_MILLIS = 150;
+    private static final int SOLUTION_REFRESH_MILLIS = 1000;     // live update of a solution window
+    private static final String BETTER_EXISTS = " · the run has a better solution";
 
     private final List<LabProblem> problems;
 
@@ -476,10 +479,14 @@ public final class LabFrame extends JFrame {
         viewButton.setEnabled(t != null && t.hasSolution());
     }
 
+    // The best solution of the selected run in a window of its own. With "Live update" (on by default) the window
+    // follows the run: within a second of a better solution it shows that one, rebuilding the view, so the view's
+    // own settings (checkboxes, a selected route) start over. Without it the window keeps what it shows.
     private void viewSolution() {
         RunTracker t = selectedRun();
         if (t == null || !t.hasSolution())
             return;
+        Object[] shown = {t.bestSolution()};
         JComponent view;
         try {
             view = t.viewBestSolution();
@@ -487,12 +494,70 @@ public final class LabFrame extends JFrame {
             error("Cannot show the solution: " + e.getMessage());
             return;
         }
-        String title = String.format("#%d %s - %s solution", t.index, t.label, t.isDone() ? "best" : "best so far");
-        JDialog dialog = new JDialog(this, title, false);
-        dialog.setContentPane(view);
+        JCheckBox live = new JCheckBox("Live update", true);
+        live.setToolTipText("Show each better solution as the run finds it");
+        JLabel asOf = new JLabel(asOf());
+        asOf.setForeground(Color.GRAY);
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        bar.add(live);
+        bar.add(asOf);
+        JPanel content = new JPanel(new BorderLayout());
+        content.add(bar, BorderLayout.NORTH);
+        content.add(view, BorderLayout.CENTER);
+
+        JDialog dialog = new JDialog(this, solutionTitle(t, true), false);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setContentPane(content);
         dialog.pack();
         dialog.setLocationRelativeTo(this);
+
+        Timer timer = new Timer(SOLUTION_REFRESH_MILLIS, null);
+        Runnable refresh = () -> {
+            boolean done = t.isDone();      // before reading the solution: a finished run has its final one
+            Object best = t.bestSolution();
+            if (live.isSelected() && best != null && best != shown[0]) {
+                try {
+                    JComponent fresh = t.viewBestSolution();
+                    content.remove(((BorderLayout) content.getLayout()).getLayoutComponent(BorderLayout.CENTER));
+                    content.add(fresh, BorderLayout.CENTER);
+                    content.revalidate();
+                    content.repaint();
+                    shown[0] = best;
+                    asOf.setText(asOf());
+                } catch (RuntimeException e) {
+                    live.setSelected(false);
+                    asOf.setText("cannot update: " + e.getMessage());
+                }
+            }
+            boolean current = best == null || best == shown[0];
+            dialog.setTitle(solutionTitle(t, current));
+            if (!current && !asOf.getText().endsWith(BETTER_EXISTS))
+                asOf.setText(asOf.getText() + BETTER_EXISTS);
+            if (done && current)
+                timer.stop();
+        };
+        timer.addActionListener(e -> refresh.run());
+        live.addActionListener(e -> {
+            if (live.isSelected())
+                refresh.run();
+        });
+        dialog.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                timer.stop();
+            }
+        });
+        timer.start();
         dialog.setVisible(true);
+    }
+
+    private static String solutionTitle(RunTracker t, boolean current) {
+        String which = !current ? "earlier" : t.isDone() ? "best" : "best so far";
+        return String.format("#%d %s - %s solution", t.index, t.label, which);
+    }
+
+    private static String asOf() {
+        return "as of " + LocalTime.now().withNano(0);
     }
 
     // ------------------------------------------------------------------ export

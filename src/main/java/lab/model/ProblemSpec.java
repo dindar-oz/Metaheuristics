@@ -99,8 +99,9 @@ public final class ProblemSpec<S extends Representation<S>, P extends Optimizati
                     }
 
                     // the final best solution, or the best so far while the run is going
+                    @Override
                     @SuppressWarnings("unchecked") // snapshots of this run only ever hold solutions of type S
-                    private S bestSolution() {
+                    public S bestSolution() {
                         if (handle.isDone() && !handle.result().isCompletedExceptionally()) {
                             RunResult<S> result = handle.result().join();
                             return result.bestSolution();

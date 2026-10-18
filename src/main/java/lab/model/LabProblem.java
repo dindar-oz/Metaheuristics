@@ -3,6 +3,7 @@ package lab.model;
 import metaheuristic.run.RunHandle;
 import metaheuristic.run.SearchListener;
 import metaheuristic.termination.TerminalCondition;
+import representation.base.Representation;
 
 import javax.swing.*;
 import java.util.List;
@@ -48,5 +49,9 @@ public interface LabProblem {
 
         // a view of the final (or, while running, the best so far) solution; call on the Swing thread
         JComponent viewBestSolution();
+
+        // the solution viewBestSolution shows now (null if none yet); a new object when a better one is found, so a
+        // view can tell by identity whether it is out of date
+        Representation<?> bestSolution();
     }
 }
