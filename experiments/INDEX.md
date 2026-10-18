@@ -1,13 +1,13 @@
 # Experiments
 
-Workspace of the experiment runner (package `experimentrunner`). Updated 2026-10-18 09:37.
+Workspace of the experiment runner (package `experimentrunner`). Updated 2026-10-18 14:33.
 
-**Worker:** running (pid 30484, 7 threads, since 2026-10-18 09:30)
+**Worker:** running (pid 29844, 7 threads, since 2026-10-18 13:47)
 
 | # | experiment | title | state | runs | journal |
 |---|---|---|---|---|---|
 | 1 | `pecto-explorer-tuning-r1` | Explorer parameters on large instances, long runs (round 1) | DONE | 165/165 | [JOURNAL.md](pecto-explorer-tuning-r1/JOURNAL.md) |
-| 2 | `pecto-explorer-tuning-r2` | Explorer parameters on large instances, long runs (round 2) | QUEUED | 7/150 | [JOURNAL.md](pecto-explorer-tuning-r2/JOURNAL.md) |
+| 2 | `pecto-explorer-tuning-r2` | Explorer parameters on large instances, long runs (round 2) | QUEUED | 68/150 | [JOURNAL.md](pecto-explorer-tuning-r2/JOURNAL.md) |
 
 ## Picking up after a break (for Claude and people)
 
