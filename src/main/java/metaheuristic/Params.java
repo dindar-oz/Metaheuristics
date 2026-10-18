@@ -44,6 +44,26 @@ public final class Params {
         return value;
     }
 
+    public static int nonNegative(String name, int value) {
+        if (value < 0)
+            throw new IllegalArgumentException(name + " must not be negative, was " + value);
+        return value;
+    }
+
+    // min <= value <= max
+    public static int between(String name, int value, int min, int max) {
+        if (value < min || value > max)
+            throw new IllegalArgumentException(name + " must be between " + min + " and " + max + ", was " + value);
+        return value;
+    }
+
+    // value < limit (strictly); combine with positive or nonNegative for the lower end
+    public static double below(String name, double value, double limit) {
+        if (!(value < limit))
+            throw new IllegalArgumentException(name + " must be below " + limit + ", was " + value);
+        return value;
+    }
+
     public static <T> List<T> immutableCopy(Collection<? extends T> values) {
         return values == null ? Collections.<T>emptyList() : Collections.unmodifiableList(new ArrayList<T>(values));
     }

@@ -45,6 +45,7 @@ Pool rounds 1 and 2 (30 paired runs per setting). Choose the setting with the lo
 ## Notes
 
 - 2026-10-18 09:26: the worker was stopped gracefully after 7 runs, so that it would pick up a tray fix, and restarted at 09:30 from runtime r-20261018-092959-c1cc39c193 (no runs lost). Runs 1-7 used r-20261017-180902-0e9417ca55, the same runtime as round 1. The two runtimes differ only in runner classes (experimentrunner.Cli, WorkerLauncher, experimentrunner.gui.*). Every algorithm and problem class is byte-identical, so all runs of both rounds stay comparable.
+- 2026-10-18 12:32: the worker was stopped (runs in flight dropped, they run again) and round 2 paused, to free the machine; resumed at 13:47 at 54/150 runs from runtime r-20261018-134701-162dc2f791. That runtime has the refactored PECTOACO (split into CandidateLists, Pheromone, Ant, AntBuilds; no change to the search). It reproduces the old code bit for bit: the golden-master test (PECTOACOGoldenTest, 12 cases, full per-iteration trace) and identical costs on Table I instance 10. Runs 55-150 are therefore comparable with all earlier runs.
 
 ## Results
 
