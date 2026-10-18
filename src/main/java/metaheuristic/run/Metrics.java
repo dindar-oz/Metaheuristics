@@ -12,6 +12,14 @@ public final class Metrics {
     public static final String CURRENT_COST = "currentCost";
     public static final String MEAN_COST = "meanCost";
 
+    // added by the run when diagnostics are on (Runner.diagnostics), for any algorithm:
+    // iterations since the best solution last improved (0: it improved in this iteration)
+    public static final String STAGNATION = "stagnation";
+    // mean distanceTo() between members of the reported population; only if the representation defines a distance
+    public static final String DIVERSITY = "diversity";
+    // fraction of the reported population that equals an earlier member
+    public static final String DUPLICATES = "duplicates";
+
     private Metrics() {
     }
 

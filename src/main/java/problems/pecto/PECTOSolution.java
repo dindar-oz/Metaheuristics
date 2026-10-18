@@ -116,6 +116,38 @@ public final class PECTOSolution implements Representation<PECTOSolution> {
         return this; // immutable
     }
 
+    /**
+     * The share of the patients' choices that differ: who is picked up right before each patient (its ambulance or
+     * a patient) and the hospital it is taken to. 0 for the same routes, 1 when no choice is shared.
+     */
+    @Override
+    public double distanceTo(PECTOSolution other) {
+        if (problem.patientCount() == 0)
+            return 0;
+        int[] mine = choices(), theirs = other.choices();
+        int differing = 0;
+        for (int i = 0; i < mine.length; i++)
+            if (mine[i] != theirs[i])
+                differing++;
+        return (double) differing / mine.length;
+    }
+
+    // by patient index k: [2k] the stop before the patient, [2k + 1] its hospital; -1 if it is not transported
+    private int[] choices() {
+        int[] choices = new int[2 * problem.patientCount()];
+        Arrays.fill(choices, -1);
+        for (Route route : routes) {
+            int previous = route.ambulance();
+            for (int t = 0; t < route.tripCount(); t++) {
+                int k = problem.index(route.patient(t));
+                choices[2 * k] = previous;
+                choices[2 * k + 1] = route.hospital(t);
+                previous = route.patient(t);
+            }
+        }
+        return choices;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)

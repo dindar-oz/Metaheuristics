@@ -30,6 +30,11 @@ class RunnerTest {
         return c.runner().seed(seed).stopWhen(stop).run(c.getProblem());
     }
 
+    private static <S extends Representation<S>, P extends OptimizationProblem<S>> RunResult<S> runDiagnosed(
+            ExperimentCase<S, P> c, long seed, TerminalCondition stop) {
+        return c.runner().seed(seed).stopWhen(stop).diagnostics(true).run(c.getProblem());
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("algorithms")
     void sameSeedGivesIdenticalRun(ExperimentCase<?, ?> c) {
@@ -40,6 +45,25 @@ class RunnerTest {
         assertEquals(a.iterations(), b.iterations());
         assertEquals(a.bestSolution(), b.bestSolution());
         assertEquals(7, a.seed());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("algorithms")
+    void diagnosticsDoNotChangeTheRun(ExperimentCase<?, ?> c) {
+        RunResult<?> plain = run(c, 5, new EvaluationBasedTC(3000));
+        RunResult<?> diagnosed = runDiagnosed(c, 5, new EvaluationBasedTC(3000));
+        assertEquals(plain.bestCost(), diagnosed.bestCost());
+        assertEquals(plain.evaluations(), diagnosed.evaluations());
+        assertEquals(plain.bestSolution(), diagnosed.bestSolution());
+        assertFalse(plain.finalProgress().metrics().containsKey(Metrics.STAGNATION));
+        if (diagnosed.iterations() > 0) {
+            Double stagnation = diagnosed.finalProgress().metrics().get(Metrics.STAGNATION);
+            assertNotNull(stagnation);
+            assertTrue(stagnation >= 0 && stagnation < diagnosed.iterations());
+            Double duplicates = diagnosed.finalProgress().metrics().get(Metrics.DUPLICATES);
+            if (duplicates != null)
+                assertTrue(duplicates >= 0 && duplicates < 1);
+        }
     }
 
     @ParameterizedTest(name = "{0}")

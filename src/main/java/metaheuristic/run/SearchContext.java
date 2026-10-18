@@ -4,6 +4,7 @@ import representation.base.Representation;
 import util.random.RNG;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,8 +26,16 @@ public interface SearchContext<S extends Representation<S>> {
     // true when the stop condition holds, or the run was cancelled or interrupted
     boolean shouldStop();
 
-    // marks the end of an iteration and publishes progress with the given algorithm specific metrics
-    void iterationCompleted(Map<String, Double> metrics);
+    /**
+     * Marks the end of an iteration and publishes progress with the given algorithm specific metrics. Population
+     * based algorithms also pass the solutions of the iteration (e.g. the ants' solutions or the population), from
+     * which the diagnostic metrics DIVERSITY and DUPLICATES are derived; they are only read during the call.
+     */
+    void iterationCompleted(Map<String, Double> metrics, List<? extends S> population);
+
+    default void iterationCompleted(Map<String, Double> metrics) {
+        iterationCompleted(metrics, Collections.emptyList());
+    }
 
     default void iterationCompleted() {
         iterationCompleted(Collections.emptyMap());

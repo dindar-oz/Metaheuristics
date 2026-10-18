@@ -34,3 +34,20 @@ target/
 .idea/
 *.iml
 results/
+
+### Experiment runner: machine-local state (journals, specs and results are committed) ###
+experiments/runtime/
+experiments/*.lock
+experiments/gui.port
+experiments/**/*.tmp
+experiments/worker.json
+experiments/worker.log
+experiments/queue.json
+experiments/*/status.json
+experiments/runner.cmd
+experiments/runner.sh
+experiments/open-runner.cmd
+experiments/runner.ico
+
+### Third-party papers (not ours to redistribute) ###
+src/main/java/problems/wflop/papers/*.pdf

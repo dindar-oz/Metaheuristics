@@ -80,7 +80,8 @@ public final class EA<S extends Representation<S>> extends AbstractMetaheuristic
             for (GenerationHook<S> hook : hooks)
                 hook.afterGeneration(population, run);
 
-            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, population.meanCost()));
+            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, population.meanCost()),
+                    population.individuals().stream().map(Individual::getRepresentation).toList());
         }
     }
 

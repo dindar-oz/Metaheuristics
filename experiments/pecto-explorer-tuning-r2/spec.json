@@ -1,0 +1,139 @@
+{
+  "id": "pecto-explorer-tuning-r2",
+  "title": "Explorer parameters on large instances, long runs (round 2)",
+  "question": "Which explorer settings (count, rate, heuristic exponent, deposit) give the lowest cost on the large Table I instances when runs are long (1,500 iterations)?",
+  "hypothesis": "From round 1: the default (n2_r0.05_b0.5_d0.05) stays among the best and is hard to beat; n2_r0.05_b2_d0.05 led round 1 (-0.189% vs -0.160%) with a gap that kept widening through the run, so it is the most likely to beat the default; deposit 0.02 does not help except possibly at rate 0.02; the gain is on T9/T10, not on T8.",
+  "analysisPlan": "Round 2 of the two-round race begun in pecto-explorer-tuning-r1: same instances, budget and code, seeds 5-9 (15 new paired runs per setting). n1_r0.05_b0.5_d0.05 was dropped after round 1 (worse than the best round-1 setting, paired Wilcoxon p = 0.041). n0 is rerun because it is the reference of every gap. Final best cost as the paired gap to n0 on the same instance and repeat. The decision uses rounds 1+2 pooled (30 paired runs per setting): mean gap, 95% interval, exact paired Wilcoxon; this round's summary alone is a replication check (same ranking? same per-instance pattern, T8 flat?). Secondary: anytime gap curves (does the b2 gap keep widening late?) and final diversity, as tie-breakers.",
+  "decisionRule": "Pool rounds 1 and 2 (30 paired runs per setting). Choose the setting with the lowest mean gap to n0; if it is not significantly better than the default n2_r0.05_b0.5_d0.05 (exact paired Wilcoxon on the 30 per-run gap differences, p < 0.05), keep the default. Among statistically equal settings prefer the one with higher final diversity.",
+  "problem": "Casualty transport (PECTO)",
+  "problemParams": {
+    "instance seed": 42.0
+  },
+  "instances": [
+    {
+      "label": "T8",
+      "seedKey": 8,
+      "params": {
+        "instance": "Table I: 8"
+      }
+    },
+    {
+      "label": "T9",
+      "seedKey": 9,
+      "params": {
+        "instance": "Table I: 9"
+      }
+    },
+    {
+      "label": "T10",
+      "seedKey": 10,
+      "params": {
+        "instance": "Table I: 10"
+      }
+    }
+  ],
+  "algorithm": "ACO (MMAS)",
+  "algorithmParams": {},
+  "configs": [
+    {
+      "label": "n0",
+      "params": {
+        "explorers": 0.0,
+        "explorer rate": 0.05,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.05
+      }
+    },
+    {
+      "label": "n2_r0.02_b0.5_d0.02",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.02,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.02
+      }
+    },
+    {
+      "label": "n2_r0.05_b0.5_d0.02",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.05,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.02
+      }
+    },
+    {
+      "label": "n2_r0.1_b0.5_d0.02",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.1,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.02
+      }
+    },
+    {
+      "label": "n2_r0.02_b0.5_d0.05",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.02,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.05
+      }
+    },
+    {
+      "label": "n2_r0.05_b0.5_d0.05",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.05,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.05
+      }
+    },
+    {
+      "label": "n2_r0.1_b0.5_d0.05",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.1,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.05
+      }
+    },
+    {
+      "label": "n4_r0.05_b0.5_d0.05",
+      "params": {
+        "explorers": 4.0,
+        "explorer rate": 0.05,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.05
+      }
+    },
+    {
+      "label": "n2_r0.05_b0_d0.05",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.05,
+        "explorer beta": 0.0,
+        "explorer deposit": 0.05
+      }
+    },
+    {
+      "label": "n2_r0.05_b2_d0.05",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.05,
+        "explorer beta": 2.0,
+        "explorer deposit": 0.05
+      }
+    }
+  ],
+  "baseline": "n0",
+  "seeds": {
+    "base": 20261016,
+    "firstRepeat": 5,
+    "repeats": 5
+  },
+  "budget": {
+    "evaluations": 181501
+  },
+  "traceEvery": 50
+}

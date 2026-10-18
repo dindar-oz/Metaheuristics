@@ -55,7 +55,8 @@ public final class PSO extends AbstractMetaheuristic<DoubleVector, ContinuousPro
                 p.update(cProblem, globalBest, ctx);
                 sum += p.cost;
             }
-            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, sum / swarm.size()));
+            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, sum / swarm.size()),
+                    swarm.stream().map(p -> new DoubleVector(p.position)).toList());
         }
     }
 

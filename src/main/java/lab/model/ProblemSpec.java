@@ -115,7 +115,7 @@ public final class ProblemSpec<S extends Representation<S>, P extends Optimizati
 
     private static <S extends Representation<S>, Q extends OptimizationProblem<S>> RunHandle<S> startRun(
             Metaheuristic<S, Q> algorithm, Q problem, long seed, TerminalCondition stop, SearchListener listener, Executor executor) {
-        return Runner.of(algorithm).seed(seed).stopWhen(stop).listener(listener).start(problem, executor);
+        return Runner.of(algorithm).seed(seed).stopWhen(stop).diagnostics(true).listener(listener).start(problem, executor);
     }
 
     private AlgorithmSpec<S, P> algorithm(String name) {

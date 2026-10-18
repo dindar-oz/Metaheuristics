@@ -7,7 +7,9 @@ import metaheuristic.run.SearchContext;
 import representation.IntegerPermutation;
 import util.random.RNG;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Ant System for GraphProblems. Each iteration every ant builds a tour, choosing the next node j
@@ -59,12 +61,14 @@ public final class ACO extends AbstractMetaheuristic<IntegerPermutation, GraphPr
                     attractiveness[i][j] = Math.pow(pheromone[i][j], alpha) * heuristic[i][j];
             int[][] tours = new int[antCount][];
             double[] costs = new double[antCount];
+            List<IntegerPermutation> solutions = new ArrayList<>(antCount);
             double sum = 0;
             for (int a = 0; a < antCount; a++) {
                 if (ctx.shouldStop())
                     return;
                 tours[a] = constructTour(n, attractiveness, rng);
-                costs[a] = ctx.evaluate(new IntegerPermutation(tours[a]));
+                solutions.add(new IntegerPermutation(tours[a]));
+                costs[a] = ctx.evaluate(solutions.get(a));
                 sum += costs[a];
             }
 
@@ -74,7 +78,7 @@ public final class ACO extends AbstractMetaheuristic<IntegerPermutation, GraphPr
             for (int a = 0; a < antCount; a++)
                 deposit(pheromone, tours[a], q / Math.max(costs[a], MIN_DISTANCE));
 
-            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, sum / antCount));
+            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, sum / antCount), solutions);
         }
     }
 

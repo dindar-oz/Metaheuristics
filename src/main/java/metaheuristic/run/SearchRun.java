@@ -6,8 +6,11 @@ import representation.base.Representation;
 import util.random.RNG;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The live state of one run. Confined to the run's thread; other threads only see ProgressSnapshots
@@ -15,11 +18,15 @@ import java.util.Map;
  */
 final class SearchRun<S extends Representation<S>> implements SearchContext<S>, Progress {
 
+    private static final int DIVERSITY_SAMPLE = 16; // members whose pairwise distances give DIVERSITY
+
     private final OptimizationProblem<S> problem;
     private final RNG rng;
     private final TerminalCondition stopCondition;
     private final List<SearchListener> listeners;
     private final RunHandle<S> handle;
+    private final boolean diagnostics;
+    private boolean distanceDefined = true; // until distanceTo() throws UnsupportedOperationException
     private final long startNanos = System.nanoTime();
 
     private long iterations = 0;
@@ -33,12 +40,13 @@ final class SearchRun<S extends Representation<S>> implements SearchContext<S>, 
     private StopReason stopReason = null;
 
     SearchRun(OptimizationProblem<S> problem, RNG rng, TerminalCondition stopCondition,
-              List<SearchListener> listeners, RunHandle<S> handle) {
+              List<SearchListener> listeners, RunHandle<S> handle, boolean diagnostics) {
         this.problem = problem;
         this.rng = rng;
         this.stopCondition = stopCondition;
         this.listeners = listeners;
         this.handle = handle;
+        this.diagnostics = diagnostics;
     }
 
     @Override
@@ -80,13 +88,41 @@ final class SearchRun<S extends Representation<S>> implements SearchContext<S>, 
     }
 
     @Override
-    public void iterationCompleted(Map<String, Double> metrics) {
+    public void iterationCompleted(Map<String, Double> metrics, List<? extends S> population) {
+        if (diagnostics)
+            metrics = withDiagnostics(metrics, population);
         iterations++;
         this.metrics = metrics.isEmpty() ? Collections.<String, Double>emptyMap() : Collections.unmodifiableMap(metrics);
         ProgressSnapshot snapshot = snapshot();
         handle.publish(snapshot);
         for (SearchListener l : listeners)
             l.onProgress(snapshot);
+    }
+
+    // the algorithm's metrics plus STAGNATION and, for a population of two or more, DUPLICATES and DIVERSITY
+    private Map<String, Double> withDiagnostics(Map<String, Double> metrics, List<? extends S> population) {
+        Map<String, Double> all = new LinkedHashMap<>(metrics);
+        all.put(Metrics.STAGNATION, (double) (iterations - bestIteration));
+        int n = population.size();
+        if (n < 2)
+            return all;
+
+        Set<S> distinct = new HashSet<>(population);
+        all.put(Metrics.DUPLICATES, (double) (n - distinct.size()) / n);
+        if (distanceDefined) {
+            // all pairs of an evenly spaced sample, so that large populations stay cheap
+            int k = Math.min(n, DIVERSITY_SAMPLE);
+            double sum = 0;
+            try {
+                for (int i = 0; i < k; i++)
+                    for (int j = i + 1; j < k; j++)
+                        sum += population.get(i * n / k).distanceTo(population.get(j * n / k));
+                all.put(Metrics.DIVERSITY, sum / (k * (k - 1) / 2.0));
+            } catch (UnsupportedOperationException e) {
+                distanceDefined = false;
+            }
+        }
+        return all;
     }
 
     @Override

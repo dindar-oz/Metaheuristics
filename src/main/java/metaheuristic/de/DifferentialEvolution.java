@@ -9,6 +9,8 @@ import metaheuristic.run.SearchContext;
 import representation.DoubleVector;
 import util.random.RNG;
 
+import java.util.Arrays;
+
 /**
  * Classic DE/rand/1/bin. Mutants leaving the search box are corrected by the BoundaryHandler.
  */
@@ -64,7 +66,8 @@ public final class DifferentialEvolution extends AbstractMetaheuristic<DoubleVec
                 sum += costs[i];
             }
             population = next;
-            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, sum / populationSize));
+            ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, sum / populationSize),
+                    Arrays.stream(population).map(DoubleVector::new).toList());
         }
     }
 

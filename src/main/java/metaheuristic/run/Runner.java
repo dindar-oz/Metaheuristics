@@ -25,6 +25,7 @@ public final class Runner<S extends Representation<S>, P extends OptimizationPro
     private final Metaheuristic<S, P> algorithm;
     private TerminalCondition stopCondition = TerminalCondition.never();
     private Long seed = null;
+    private boolean diagnostics = false;
     private final List<SearchListener> listeners = new ArrayList<>();
     private final List<Function<RunInfo, SearchListener>> listenerFactories = new ArrayList<>();
 
@@ -39,6 +40,13 @@ public final class Runner<S extends Representation<S>, P extends OptimizationPro
     // Without a seed, a random one is chosen per run and reported in RunInfo/RunResult
     public Runner<S, P> seed(long seed) {
         this.seed = seed;
+        return this;
+    }
+
+    // Adds the diagnostic metrics (Metrics.STAGNATION, DIVERSITY, DUPLICATES) to every iteration's metrics. They
+    // cost a little time per iteration but never change the search; default off
+    public Runner<S, P> diagnostics(boolean diagnostics) {
+        this.diagnostics = diagnostics;
         return this;
     }
 
@@ -82,7 +90,7 @@ public final class Runner<S extends Representation<S>, P extends OptimizationPro
         RunInfo info = new RunInfo(algorithm.describe(), problem.getClass().getSimpleName(), runSeed);
         List<SearchListener> runListeners = new ArrayList<>(listeners);
         listenerFactories.forEach(f -> runListeners.add(f.apply(info)));
-        SearchRun<S> run = new SearchRun<>(problem, new MersenneTwisterRNG(runSeed), stopCondition, runListeners, handle);
+        SearchRun<S> run = new SearchRun<>(problem, new MersenneTwisterRNG(runSeed), stopCondition, runListeners, handle, diagnostics);
 
         try {
             runListeners.forEach(l -> l.onStart(info));

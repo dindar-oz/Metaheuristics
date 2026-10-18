@@ -65,6 +65,22 @@ class PECTOProblemTest {
     }
 
     @Test
+    void distanceIsTheShareOfDifferingChoices() {
+        PECTOProblem problem = figure2(4);
+        PECTOSolution a = problem.decode(PARENT_1);
+        assertEquals(0, a.distanceTo(a));
+        // patient 11 goes to hospital 12 instead of 13: 1 of the 2 x 8 choices differs
+        int[] otherHospital = PARENT_1.clone();
+        otherHospital[otherHospital.length - 1] = 12;
+        PECTOSolution b = problem.decode(otherHospital);
+        assertEquals(1.0 / 16, a.distanceTo(b));
+        assertEquals(a.distanceTo(b), b.distanceTo(a));
+        // ambulance 3 serves 11 before 9: the stops before 9 and 11 differ
+        int[] swapped = {0, 7, 13, 10, 12, 1, 5, 13, 4, 12, 2, 8, 13, 6, 12, 3, 11, 13, 9, 12};
+        assertEquals(2.0 / 16, a.distanceTo(problem.decode(swapped)));
+    }
+
+    @Test
     void decodesAndEncodesThePaperSequence() {
         PECTOProblem problem = figure2(4);
         PECTOSolution parent = problem.decode(PARENT_1);

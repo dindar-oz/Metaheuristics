@@ -37,6 +37,7 @@ import problems.pecto.PECTOGraph;
 import problems.pecto.PECTOInstances;
 import problems.pecto.PECTOProblem;
 import problems.pecto.PECTOSolution;
+import problems.pecto.aco.PECTOACO;
 import problems.pecto.operators.ChangeHospital;
 import problems.pecto.operators.MoveTrip;
 import problems.pecto.operators.RandomPECTOSG;
@@ -148,8 +149,8 @@ public final class Catalog {
     }
 
     // Balci & Oz: ambulances take patients, one at a time, to hospitals of limited capacity; the paper's Table I
-    // instances or a custom size generated the same way. EA, SA and local search work on routes; ACO builds giant
-    // tours over the ambulances and patients (PECTOGraph), which decode to routes.
+    // instances or a custom size generated the same way. EA, SA, local search and the MAX-MIN ant colony (PECTOACO)
+    // work on routes; ACO builds giant tours over the ambulances and patients (PECTOGraph), which decode to routes.
     private static LabProblem pecto() {
         String[] instances = new String[PECTOInstances.INSTANCE_COUNT + 1];
         for (int k = 1; k <= PECTOInstances.INSTANCE_COUNT; k++)
@@ -172,7 +173,8 @@ public final class Catalog {
                         ea(isg, ops, crossovers),
                         // the paper's tuned initial temperature; cooled to the minimum in ~100 000 evaluations
                         sa(isg, ops, 25, 0.01, 0.9985, 20),
-                        localSearch(isg, ops)),
+                        localSearch(isg, ops),
+                        pectoAco()),
                 new PECTOVisualizer());
 
         // ACO keeps three node x node matrices: ~170 MB for Table I: 1, ~690 MB for Table I: 10
@@ -301,6 +303,58 @@ public final class Catalog {
                         .alpha(v.getDouble("alpha"))
                         .beta(v.getDouble("beta"))
                         .rho(v.getDouble("rho"))
+                        .build());
+    }
+
+    // MAX-MIN ant colony that builds PECTO routes directly
+    private static AlgorithmSpec<PECTOSolution, PECTOProblem> pectoAco() {
+        return new AlgorithmSpec<>("ACO (MMAS)",
+                Arrays.asList(
+                        integer("ants", 20, 1, 10000, "ants per iteration"),
+                        real("alpha", 1, 0, 20, "pheromone influence"),
+                        real("beta", 2, 0, 20, "heuristic influence"),
+                        real("rho", 0.1, 0.001, 1, "evaporation rate"),
+                        real("p best", 0.05, 0.001, 0.999, "sets tau_min: the probability of building the best solution "
+                                + "once the pheromone has converged"),
+                        integer("candidates", 20, 1, 1000, "nearest patients considered after each stop"),
+                        integer("hospital candidates", 5, 1, 1000, "nearest hospitals with a free bed considered for a patient"),
+                        integer("shortlist", 3, 1, 100000, "best rated ambulances among which the moving one is drawn"),
+                        integer("local search steps", 100, 0, 1000000, "neighbors tried on the best ant of every iteration"),
+                        choice("hospitals", "optimal", "optimal: the best ant of every iteration gets the best hospitals "
+                                + "for its routes; as built: it keeps the ones the ant chose", "optimal", "as built"),
+                        choice("execution", "sequential", "synchronous: the ants of every iteration are built in "
+                                + "parallel; both give the same run for the same seed", "sequential", "synchronous"),
+                        integer("threads", Runtime.getRuntime().availableProcessors(), 1, 1024,
+                                "threads building the ants in synchronous execution"),
+                        real("tau min ratio", 0, 0, 0.999, "floor of tau_min as a fraction of tau_max, e.g. 0.025; "
+                                + "0 = from p best only"),
+                        integer("explorers", 2, 0, 10000, "ants per iteration that sometimes ignore the pheromone "
+                                + "(at most ants); 0 = the plain colony"),
+                        real("explorer rate", 0.05, 0, 1, "probability that an explorer's patient or hospital draw "
+                                + "ignores the pheromone"),
+                        real("explorer beta", 0.5, 0, 20, "heuristic influence in the draws that ignore the pheromone; "
+                                + "lower than beta spreads them over the candidates"),
+                        real("explorer deposit", 0.05, 0, 1, "pheromone deposited by the best explorer of every "
+                                + "iteration, as a fraction of 1 / cost; 0 = none")),
+                (p, v) -> PECTOACO.builder()
+                        .antCount(v.getInt("ants"))
+                        .alpha(v.getDouble("alpha"))
+                        .beta(v.getDouble("beta"))
+                        .rho(v.getDouble("rho"))
+                        .pBest(v.getDouble("p best"))
+                        .candidates(v.getInt("candidates"))
+                        .hospitalCandidates(v.getInt("hospital candidates"))
+                        .shortlist(v.getInt("shortlist"))
+                        .localSearchSteps(v.getInt("local search steps"))
+                        .optimalHospitals(v.getChoice("hospitals").equals("optimal"))
+                        .executionMode(v.getChoice("execution").equals("synchronous")
+                                ? PECTOACO.ExecutionMode.SYNCHRONOUS : PECTOACO.ExecutionMode.SEQUENTIAL)
+                        .threads(v.getInt("threads"))
+                        .tauMinRatio(v.getDouble("tau min ratio"))
+                        .explorers(Math.min(v.getInt("explorers"), v.getInt("ants")))
+                        .explorerRate(v.getDouble("explorer rate"))
+                        .explorerBeta(v.getDouble("explorer beta"))
+                        .explorerDeposit(v.getDouble("explorer deposit"))
                         .build());
     }
 

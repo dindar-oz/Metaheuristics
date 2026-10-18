@@ -128,8 +128,24 @@ ambulances take patients, one at a time, to hospitals of limited capacity.
 not the paper's operators. `PECTOGraph` views the problem as a `GraphProblem` for ACO: an ant builds a giant tour over
 the ambulances and patients, which is cut into routes at the ambulances, and every patient goes to the free hospital
 that minimizes its delivery plus the next pickup, so every tour is feasible. ACO keeps node × node matrices, so it
-is practical on custom instances of a few hundred patients but slow on Table I sizes. In the lab, `PECTOVisualizer`
-draws the area with the routes and lists the route costs.
+is practical on custom instances of a few hundred patients but slow on Table I sizes.
+
+`problems.pecto.aco.PECTOACO` is a MAX-MIN ant colony that builds routes directly instead. Each step moves one
+ambulance, drawn from the few whose most attractive next pickup is best, to a patient drawn among the nearest
+candidates of its previous stop. The pheromone is directed (which patient follows which), and the heuristic is the
+urgency-weighted distance from the hospital the ambulance is actually at. A patient's hospital is drawn among the
+nearest ones with a free bed, and drawn again once the next patient is known: a hospital changes only the delivery
+and the next pickup. The best ant of every iteration is improved by a short local search and then given the optimal
+hospitals for its routes (`OptimalHospitals`, an exact transportation problem solved by cycle cancelling). Pheromone
+is kept for the candidates only, (A + P) × 20 + P × H values, and an ant takes about 20 ms on Table I: 1. On that
+instance it improves on the greedy solution within about 75 iterations; the giant-tour ACO is still above the
+greedy cost after 2000 evaluations. `executionMode(SYNCHRONOUS)` builds the ants of every iteration in parallel on
+`threads` threads; every ant has its own RNG, so a seed gives the same run in both modes. Against early
+convergence, `explorers` ants (2 by default) ignore the pheromone in a share `explorerRate` (0.05) of their patient
+and hospital draws, using the flatter heuristic exponent `explorerBeta` there, and the best of them deposits
+`explorerDeposit` (0.05) of the usual amount; on Table I instances 8–10 this lowered the cost by about 0.2% against the
+plain colony (`explorers(0)`). `tauMinRatio` sets a floor for tau_min, which the pBest formula makes tiny on Table I
+sizes (off by default). In the lab, `PECTOVisualizer` draws the area with the routes and lists the route costs.
 
 ## Metaheuristic Lab (GUI)
 
@@ -144,7 +160,8 @@ A desktop tool to run several algorithms side by side and watch them converge:
 - set the budget (max evaluations, time limit, target cost) and a seed; every run is reproducible from its seed;
 - **Run** starts all runs in parallel; the *Convergence* tab plots the exact best-cost curve of every run
   (against evaluations or time, optionally log-scale), the *Metrics* tab plots algorithm internals such as
-  SA's temperature and current cost or the population mean cost, and the results table shows live status;
+  SA's temperature and current cost or the population mean cost, plus the diagnostics `stagnation`, `diversity`
+  and `duplicates` (see Monitoring), and the results table shows live status;
 - **View solution** (or double-click a row of the results table) shows the best solution of the selected run: the
   final one, or the best so far while it is still running. The wind farm problem draws the layout, colors every turbine
   by its power relative to an unwaked turbine and, for a single wind direction, draws the wakes. The TSP draws the
@@ -247,6 +264,11 @@ Experiment.of(ExperimentCase.of("SA", sa, tsp), ExperimentCase.of("ACO", ACO.bui
   combinable with `TerminalCondition.anyOf/allOf`.
 - **Monitoring.** `SearchListener` receives `onStart`, `onProgress` (every iteration, with algorithm-specific metrics
   such as `temperature` or `meanCost`), `onImprovement` and `onFinish` with immutable snapshots.
+  `Runner.diagnostics(true)` (on in the lab) adds convergence diagnostics to the metrics of every algorithm:
+  `stagnation` (iterations since the best improved) and, for algorithms that report their population with
+  `iterationCompleted(metrics, population)`, `duplicates` (share of members equal to an earlier one) and `diversity`
+  (mean `distanceTo` between members, if the representation defines one). They never change the search.
+  `PECTOACO` also reports `branchingFactor`, the λ-branching factor of its pheromone.
   `Listeners.throttled(...)` limits the rate, `Listeners.async(...)` moves slow listeners (files, GUI) off the search
   thread, and `Runner.listenerPerRun(...)` creates per-run listeners such as CSV traces.
 - **Control from other threads.** `Runner.start(problem, executor)` returns a thread-safe `RunHandle`:
