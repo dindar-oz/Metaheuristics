@@ -1,8 +1,8 @@
 # Experiments
 
-Workspace of the experiment runner (package `experimentrunner`). Updated 2026-10-18 19:37.
+Workspace of the experiment runner (package `experimentrunner`). Updated 2026-10-18 19:42.
 
-**Worker:** running (pid 29844, 7 threads, since 2026-10-18 13:47)
+**Worker:** not running
 
 | # | experiment | title | state | runs | journal |
 |---|---|---|---|---|---|
