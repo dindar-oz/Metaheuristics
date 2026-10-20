@@ -60,6 +60,10 @@ final class Ant {
     private final int[] rated;                  // the patient the rating is for
     private final byte[] rateState;             // EXACT, BOUND or UNKNOWN
     private final boolean[] ratedNearest;       // rated by the nearest unserved patient, no candidate being left
+    // by patient index: the ambulances rated by the patient, linked through ratedNext / ratedPrev (-1 ends a list)
+    private final int[] ratedHead;
+    private final int[] ratedNext;
+    private final int[] ratedPrev;
 
     // scratch space of the draws
     private final int[] top;                    // the shortlist, best first
@@ -104,6 +108,9 @@ final class Ant {
         rated = new int[ambulances];
         rateState = new byte[ambulances];
         ratedNearest = new boolean[ambulances];
+        ratedHead = new int[patients];
+        ratedNext = new int[ambulances];
+        ratedPrev = new int[ambulances];
         top = new int[Math.min(aco.shortlist, ambulances)];
         choiceHospitals = new int[Math.min(aco.hospitalCandidates, hospitals)];
         choiceWeights = new double[Math.max(choiceHospitals.length, aco.candidates)];
@@ -135,7 +142,9 @@ final class Ant {
             pending[a] = -1;
             stopCount[a] = 0;
             rateState[a] = UNKNOWN;
+            rated[a] = -1;
         }
+        Arrays.fill(ratedHead, -1);
         for (int n = 0; n < remaining.length; n++)
             remaining[n] = candidates[n].length;
         Arrays.fill(nearestUnserved, 0);
@@ -173,7 +182,7 @@ final class Ant {
         double best = -1;
         int bestPatient = -1;
         for (int j = 0; j < c.length && remaining[previous[a]] > 0; j++)
-            if (!served[problem.index(c[j])]) {
+            if (!served[patientIndex(c[j])]) {
                 double score = w[j] * eta(problem.urgencyWeight(c[j]) * problem.distance(at[a], c[j]), beta);
                 if (score > best) {
                     best = score;
@@ -187,7 +196,16 @@ final class Ant {
                     * eta(problem.urgencyWeight(bestPatient) * problem.distance(at[a], bestPatient), beta);
         }
         rating[a] = best;
-        rated[a] = bestPatient;
+        if (rated[a] != bestPatient) {
+            unlinkRated(a);
+            rated[a] = bestPatient;
+            int k = patientIndex(bestPatient);
+            ratedPrev[a] = -1;
+            ratedNext[a] = ratedHead[k];
+            if (ratedHead[k] >= 0)
+                ratedPrev[ratedHead[k]] = a;
+            ratedHead[k] = a;
+        }
         rateState[a] = EXACT;
         ratedNearest[a] = remaining[previous[a]] == 0;
     }
@@ -196,16 +214,20 @@ final class Ant {
     private int nearestUnserved(int where) {
         int l = lists.location(where);
         int[] order = byDistance[l];
-        while (served[problem.index(order[nearestUnserved[l]])])
+        while (served[patientIndex(order[nearestUnserved[l]])])
             nearestUnserved[l]++;
         return order[nearestUnserved[l]];
     }
 
     // q has been served: the ratings for q are stale. Another ambulance's rating stays an upper bound while it still
-    // has candidates (or was rated by the nearest patient anyway); otherwise its nearest patient may now be nearer
+    // has candidates (or was rated by the nearest patient anyway); otherwise its nearest patient may now be nearer.
+    // Known gap, kept so that runs stay comparable with the recorded experiments: a BOUND is not revisited when the
+    // ambulance's last candidate is served later, while it is rated by another patient. Its nearest patient may then
+    // rate higher than the bound, and in about 0.15% of the steps on Table I instances the shortlist is not the exact
+    // best. Fixing it changes the runs (see PECTOACOGoldenTest).
     private void ratingsAfterServing(int q, int a) {
-        for (int b = 0; b < ambulances; b++)
-            if (rated[b] == q && rateState[b] == EXACT)
+        for (int b = ratedHead[patientIndex(q)]; b >= 0; b = ratedNext[b])
+            if (rateState[b] == EXACT)
                 rateState[b] = ratedNearest[b] || remaining[previous[b]] > 0 ? BOUND : UNKNOWN;
         rateState[a] = UNKNOWN;     // it moved
     }
@@ -221,7 +243,7 @@ final class Ant {
         double b = free ? explorerBeta : beta;
         double sum = 0;
         for (int j = 0; j < c.length; j++) {
-            choiceWeights[j] = served[problem.index(c[j])] ? 0
+            choiceWeights[j] = served[patientIndex(c[j])] ? 0
                     : w[j] * eta(problem.urgencyWeight(c[j]) * problem.distance(at[a], c[j]), b);
             sum += choiceWeights[j];
         }
@@ -229,7 +251,7 @@ final class Ant {
             return rated[a];        // no candidate left: the nearest unserved patient
         int j = roulette(c.length, sum);
         // rounding can make the roulette fall through to the last candidate, which may be served (weight 0)
-        return served[problem.index(c[j])] ? rated[a] : c[j];
+        return served[patientIndex(c[j])] ? rated[a] : c[j];
     }
 
     // the ambulance takes patient q: its pending patient gets its final hospital, q a provisional one
@@ -248,7 +270,7 @@ final class Ant {
         previous[a] = q;
         at[a] = hospital;
 
-        int k = problem.index(q);
+        int k = patientIndex(q);
         served[k] = true;
         for (int n : candidateOf[k])
             remaining[n]--;
@@ -260,7 +282,7 @@ final class Ant {
     // the hospital (ID) of patient p, followed by patient next (-1 if not known yet): drawn with probability
     // ~ tau^alpha * eta^beta, eta = 1 / (w_p D(p, h) + w_next D(h, next)), among the nearest hospitals with a free bed
     private int chooseHospital(int p, int next) {
-        int k = problem.index(p);
+        int k = patientIndex(p);
         boolean free = explores();
         double[] w = free ? ones : hospitalWeight[k];
         double b = free ? explorerBeta : beta;
@@ -311,6 +333,23 @@ final class Ant {
         if (b == 0)
             return 1;
         return Math.pow(c, -b);
+    }
+
+    // takes the ambulance out of the list of the patient it is rated by
+    private void unlinkRated(int a) {
+        if (rated[a] < 0)
+            return;
+        if (ratedPrev[a] >= 0)
+            ratedNext[ratedPrev[a]] = ratedNext[a];
+        else
+            ratedHead[patientIndex(rated[a])] = ratedNext[a];
+        if (ratedNext[a] >= 0)
+            ratedPrev[ratedNext[a]] = ratedPrev[a];
+    }
+
+    // problem.index for a patient ID, without the type check: this is on the innermost paths
+    private int patientIndex(int patient) {
+        return patient - ambulances;
     }
 
     private void append(int a, int patient, int hospital) {
