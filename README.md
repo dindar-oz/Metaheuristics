@@ -298,6 +298,8 @@ src/main/java/
 src/test/java/     reproducibility, exact budget, concurrency, cancellation and operator/selector contract tests
 ```
 
+The developer documentation (architecture, tools, experiments, PECTO and PECTOACO) is in [doc/](doc/README.md).
+
 ## Building and running
 
 Requires Java 21+. The Maven wrapper downloads Maven and the dependencies (commons-math3, XChart, FlatLaf, JUnit):
