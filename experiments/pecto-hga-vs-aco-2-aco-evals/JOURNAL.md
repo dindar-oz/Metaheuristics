@@ -1,0 +1,50 @@
+# Hybrid GA vs PECTOACO, part 2: PECTOACO, equal evaluations
+
+`pecto-hga-vs-aco-2-aco-evals` · submitted 2026-10-26 17:02
+
+## Question
+
+Does the research hybrid GA (metaheuristic.hybridga, PECTOHybridGA with its default parameters) find cheaper PECTO solutions than PECTOACO with its tuned defaults, under (a) equal evaluations and (b) equal wall time, and how does the answer depend on the instance (size, share of beds used)? Prompted by a lab observation (2026-10-26) that the GA reached lower cost and higher diversity than PECTOACO.
+
+## Hypothesis
+
+From probes on 2026-10-26 (single thread, instance seed 42, GA seed 1): on T10 the GA reached 212,847 after 20k evaluations, 208,655 after 181,501 (18 s) and 201,987 after 2M (190 s), against about 172,000 for PECTOACO's default after 181,501 evaluations (pecto-explorer-tuning-r1/r2). Greedy + OptimalHospitals alone costs 197,377 on T10, better than the GA after 2M evaluations: on T10 99.6 % of beds are used, and only PECTOACO assigns hospitals optimally (on its best ant every iteration). H1 (equal evaluations): PECTOACO is better on T7 and T10 by more than 10 %; the gap shrinks as fewer beds are used, and the GA may win on C100/T1. H2 (equal time, 600 s): the GA's ~40x higher evaluation rate narrows the gap, but PECTOACO still wins on T10. H3 (ablation): local search and SA account for most of the GA's quality (plain GA clearly worse). H4: the GA's final population diversity is lower than PECTOACO's (probe: 0.005 vs about 0.15), so the lab observation of higher GA diversity was probably on another instance or early in a run.
+
+## Design
+
+- **Problem:** Casualty transport (PECTO): instance seed = 42
+- **Instances:**
+  - `C100` (seedKey 100): instance = custom, ambulances (custom) = 10, patients (custom) = 100, hospitals (custom) = 5, beds per hospital (custom) = 30
+  - `T1` (seedKey 1): instance = Table I: 1
+  - `T4` (seedKey 4): instance = Table I: 4
+  - `T7` (seedKey 7): instance = Table I: 7
+  - `T10` (seedKey 10): instance = Table I: 10
+- **Algorithm:** ACO (MMAS)
+- **Configurations:**
+  - `default` (baseline)
+- **Seeds:** repeats 0–9, seed = Seeds.derive(20261026, seedKey, repeat), the same in every configuration
+- **Budget:** 181,501 evaluations per run
+- **Runs:** 50
+- **Trace:** every 25 iterations (trace.jsonl)
+
+## Analysis plan
+
+Four experiments form one comparison: pecto-hga-vs-aco-1-ga-evals (GA default + 3 ablations, 181,501 evaluations), -2-aco-evals (PECTOACO default, 181,501 evaluations = 1500 ACO iterations, its tuning budget), -3-ga-time and -4-aco-time (default of each, 600 s wall time). All four use the same 5 instances (C100: lab custom 10 ambulances / 100 patients / 5 hospitals x 30 beds, 67 % of beds used; Table I 1, 4, 7, 10 with instance seed 42: 2430/3341/4252/5163 patients for 5184 beds = 47/64/82/99.6 %) and the same seeds (base 20261026, repeats 0-9). The seed base is new: PECTOACO was tuned with base 20261016 on T8-T10, so no run here reuses a tuning seed; T10 itself was a tuning instance, T1/T4/T7/C100 were not, and the GA was not tuned at all. Within one algorithm, runs with the same instance and repeat share their seed; across algorithms a shared seed means nothing, so the GA-vs-ACO comparison is unpaired. PRIMARY, per budget type and instance: final best cost of GA 'default' vs ACO 'default' (10 vs 10 runs): exact two-sided Mann-Whitney U, Holm over the 5 instances; size as the gap of medians (GA - ACO) / ACO in % and Vargha-Delaney A12 (probability that a GA run beats an ACO run). Computed from the runs.csv of the parts (the runner's own summary only compares configurations within one experiment). SECONDARY: (1) anytime curves: median best cost against evaluations (parts 1+2) and against elapsed time (parts 3+4) per instance, and where they cross; (2) ablation in part 1: noSA, noLS, plain vs default, paired by instance and repeat (exact Wilcoxon over 50 pairs, Holm over the 3), and plain GA vs ACO; (3) gap vs share of beds used (5 points, descriptive); (4) diversity and duplicates at the end, descriptive only: for the GA they measure its population, for PECTOACO the ants of the last iteration (both sampled on 16 members), so they are not the same quantity; (5) evaluations per second and generations/iterations in the time parts. Time runs: wall clock, 7 runs in parallel on 8 logical processors; runs near the end of the queue share the machine with fewer others, so check evaluations/s by start order before trusting small time-based differences.
+
+## Decision rule
+
+Decided separately for equal evaluations (parts 1+2) and equal time (parts 3+4), on final best cost only. Per instance, an algorithm wins if Holm-adjusted p < 0.05 and the median gap is at least 0.1 % (smaller significant differences count as a tie). Verdict 'GA better' if the GA wins on at least 3 of 5 instances and loses on none; 'PECTOACO better' symmetrically; otherwise 'instance-dependent', stated as which algorithm wins where, related to size and share of beds used. The significance test decides, the effect sizes only describe; diversity never enters the verdict. Ablation: a GA component matters if removing it worsens the final cost significantly (Holm p < 0.05 over the 3 ablations). The joint analysis and the conclusions are written in the journal of pecto-hga-vs-aco-1-ga-evals; the other parts' journals point there.
+
+## Notes
+
+Part of a four-part comparison. The design notes (parameter values as run, probes before submission, what the diversity metric measures, how to analyze) and the joint conclusions are in [the hub journal](../pecto-hga-vs-aco-1-ga-evals/JOURNAL.md). Record here only what concerns this part alone, such as interruptions.
+
+## Results
+
+<!-- results:start (written by the worker; edit outside this block) -->
+No runs finished yet.
+<!-- results:end -->
+
+## Conclusions
+
+_Not written yet: read the results against the analysis plan and the decision rule, then write here what was decided and why._
