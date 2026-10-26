@@ -276,7 +276,10 @@ changes them, it has changed the search. Experiments rely on this to stay compar
 - a **name** (e.g. `"Casualty transport (PECTO)"`);
 - problem **parameters** as `ParamSpec`s (`integer`, `real`, `choice`), with default, range and description;
 - the **algorithms** that can solve it, each an `AlgorithmSpec` with its own `ParamSpec`s and a factory
-  `(problem, ParamValues) -> Metaheuristic`;
+  `(problem, ParamValues) -> Metaheuristic`. EA, SA and Local Search get their ingredients from the problem's entry as
+  `Options`: named alternatives for the **initial solutions** and the **mutation operators**, the first being the
+  default. Each becomes a choice parameter of the algorithm (`initial solutions`, `mutation operators`), shown even
+  when a problem has a single alternative, so that the lab always tells what a run starts from;
 - optionally a **visualizer** (`SolutionVisualizer`) that draws a solution.
 
 `ProblemSpec<S, P>` keeps the generic types inside, so the UI only sees names and values. `MultiEncodingProblem`

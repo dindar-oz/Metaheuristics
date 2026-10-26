@@ -51,3 +51,6 @@ experiments/runner.ico
 
 ### Third-party papers (not ours to redistribute) ###
 src/main/java/problems/wflop/papers/*.pdf
+
+### Desktop launchers: generated for this machine ###
+launch/

@@ -83,7 +83,11 @@ public final class Params {
         if (value == null)
             return "null";
         String s = value.toString();
-        String identity = value.getClass().getName() + "@";
-        return s.startsWith(identity) || s.contains("$$Lambda") ? value.getClass().getSimpleName() : s;
+        String name = value.getClass().getName();
+        // a lambda's class name ends in an address that changes from run to run: name it by the class that defines it
+        int lambda = name.indexOf("$$Lambda");
+        if (lambda >= 0)
+            return name.substring(name.lastIndexOf('.', lambda) + 1, lambda) + " lambda";
+        return s.startsWith(name + "@") ? value.getClass().getSimpleName() : s;
     }
 }

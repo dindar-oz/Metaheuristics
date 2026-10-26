@@ -174,7 +174,8 @@ over pairs of ants), and it measures the same thing that the pheromone learns.
 | `OptimalHospitals.of(s)` | exact improvement | Best hospitals for the given routes (below) | Solves within capacities |
 
 These are simple, generic operators. **They are not the paper's operators.** EA, SA and local search use
-`MoveTrip` + `ChangeHospital` (+ `RouteCrossover` for EA). PECTOACO's local search uses `MoveTrip` + `SwapTrips`.
+`MoveTrip` + `ChangeHospital` (+ `RouteCrossover` for EA) by default. The `mutation operators` parameter can add
+`SwapTrips` or replace `ChangeHospital` with it. PECTOACO's local search uses `MoveTrip` + `SwapTrips`.
 
 ## 4.5 `OptimalHospitals`: the exact hospital assignment
 
@@ -264,7 +265,7 @@ In the catalog, *Casualty transport (PECTO)* is a `MultiEncodingProblem` with tw
 
 | Encoding | Algorithms | Notes |
 |---|---|---|
-| **routes** (`PECTOSolution`) | `EA`, `SA`, `Local Search`, **`ACO (MMAS)` = `PECTOACO`** | EA/SA/LS start from `RandomPECTOSG` and use `MoveTrip` + `ChangeHospital` (+ `RouteCrossover`). SA uses the paper's initial temperature 25. |
+| **routes** (`PECTOSolution`) | `EA`, `SA`, `Local Search`, **`ACO (MMAS)` = `PECTOACO`** | EA/SA/LS: parameter `initial solutions` = *random* (`RandomPECTOSG`, default) or *greedy* (`GreedyPECTOSG`; deterministic, so an EA population starts as copies of one solution); parameter `mutation operators` = *MoveTrip + ChangeHospital* (default), *MoveTrip + ChangeHospital + SwapTrips* or *MoveTrip + SwapTrips*; EA adds `RouteCrossover`. SA uses the paper's initial temperature 25. |
 | **giant tour** (`IntegerPermutation` over `PECTOGraph`) | `ACO` (generic Ant System) | A permutation of ambulances and patients, cut into routes at the ambulances. `PECTOGraph.decode` sends every patient to the free hospital that minimizes its delivery leg plus the next pickup leg, so every tour is feasible. Needs node × node matrices: only practical for a few hundred patients. On Table I: 1 it is still above the greedy cost after 2 000 evaluations. |
 
 `PECTOACO` is the main algorithm for this problem. The next document covers it.

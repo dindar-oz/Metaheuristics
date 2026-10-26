@@ -332,6 +332,8 @@ valid.
    differs.
 8. **Restarting the experiment worker** picks up your new code. If an experiment is half done, either make sure the
    search is unchanged (golden master) and write it in the journal's Notes, or let the experiment finish first.
+9. **Update the diagnosis copy** (`problems.pecto.aco.gui`) the same way, until `DiagnosticColonyTest` passes:
+   the diagnosis tool must keep showing PECTOACO's real runs.
 
 ## 5.12 Open questions
 
@@ -354,3 +356,36 @@ From the conclusions of the tuning journals, plus what the code suggests:
 Before you start any of these, write the spec and the journal fields (question, hypothesis, analysis plan, decision
 rule) as described in [Experiments 3.7](03-experiments.md#37-journals-plan-before-you-look), and discuss them with
 your supervisor.
+
+## 5.13 The diagnosis tool
+
+`problems.pecto.aco.gui.PECTOACODiagnosis` shows a PECTOACO run as it works:
+
+```bash
+./mvnw compile exec:java -Dexec.mainClass=problems.pecto.aco.gui.PECTOACODiagnosis
+```
+
+- **Setup** (left): the instance (the lab's PECTO parameters, or a `.pecto` file), PECTOACO's parameters (the lab's,
+  by the same names) and the seed. It opens on a small custom instance; *Start* builds a new run.
+- **Controls**: *Step* and *Back* move to the next or previous event of the chosen **level**: *Iteration*, *Ant*
+  (also the improvement and the pheromone update), *Construction step*, or *Decision* (each ambulance, patient and
+  hospital draw). *Play* stops at each event of the level for the *delay*, or runs as fast as possible with delay 0.
+  *Next iteration* and *to iteration … Go* jump forward or back. Keys: → step, ← back, Space play/pause, Home restart,
+  Page Down next iteration.
+- **Map**: the routes of the ant being built (trips solid, provisional deliveries dashed) or of the best solution, the
+  options of the current decision with their probabilities, hospital beds, the pheromone the colony has reinforced,
+  and the candidates of the selected participant. Click a participant to select it.
+- **Tabs**: *Decision* (the shortlist scan with how each rating was computed, or a roulette with its weights and random
+  number), *Ant* (every ambulance's rating state EXACT/BOUND/UNKNOWN, position and trips; every hospital's beds),
+  *Iteration* (the ants' costs, the improvement of the best, who deposited pheromone), *Pheromone* (how the values are
+  spread between τ_min and τ_max; heat map of the hospital pheromone), *Node* (the selected participant's candidates and
+  pheromone in both directions). Charts below: costs per iteration, branching factor and diversity.
+- **Large instances**: everything works, but labels, the pheromone layer and the heat map are limited, and the status
+  bar says what. Stepping through a Table I ant decision by decision is possible; playing it takes long.
+
+**It shows PECTOACO's own run.** The tool runs a copy of the algorithm (`ColonyRun`, `DiagnosticAnt`, ...), so that
+PECTOACO's code stays free of diagnosis code. `DiagnosticColonyTest` requires the copy to give exactly PECTOACO's runs.
+When you change PECTOACO, make the same change in the copy until that test passes (see the package documentation).
+
+**Going back** restores the nearest checkpoint (taken at the start of every iteration, with the exact RNG states) and
+replays deterministically; on Table I: 1 a step back takes one or two seconds.

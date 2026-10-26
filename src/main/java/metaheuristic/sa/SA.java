@@ -75,7 +75,7 @@ public final class SA<S extends Representation<S>> extends AbstractMetaheuristic
 
     @Override
     protected String parameters() {
-        return "operators=" + Params.describe(operators) + ", cooling=" + coolingSchedule
+        return "initial=" + Params.describe(generator) + ", operators=" + Params.describe(operators) + ", cooling=" + coolingSchedule
                 + ", t0=" + initialTemperature + ", tMin=" + minimumTemperature + ", innerLoop=" + innerLoopLength;
     }
 

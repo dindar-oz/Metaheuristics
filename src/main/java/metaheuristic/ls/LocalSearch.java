@@ -61,7 +61,7 @@ public final class LocalSearch<S extends Representation<S>> extends AbstractMeta
 
     @Override
     protected String parameters() {
-        return "operators=" + Params.describe(operators) + ", maxNonImproving=" + maxNonImproving;
+        return "initial=" + Params.describe(generator) + ", operators=" + Params.describe(operators) + ", maxNonImproving=" + maxNonImproving;
     }
 
     public static final class Builder<S extends Representation<S>> {

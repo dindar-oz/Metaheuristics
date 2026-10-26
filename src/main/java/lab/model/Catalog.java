@@ -29,6 +29,8 @@ import metaheuristic.rl.dqn.DQN;
 import metaheuristic.rl.dqn.Exploration;
 import metaheuristic.sa.GeometricCooling;
 import metaheuristic.sa.SA;
+import operators.InsertMutation;
+import operators.RandomInterchange;
 import operators.RandomRemoveReinsert;
 import operators.TwoOpt;
 import problems.continuous.Rastrigin;
@@ -39,14 +41,17 @@ import problems.pecto.PECTOProblem;
 import problems.pecto.PECTOSolution;
 import problems.pecto.aco.PECTOACO;
 import problems.pecto.operators.ChangeHospital;
+import problems.pecto.operators.GreedyPECTOSG;
 import problems.pecto.operators.MoveTrip;
 import problems.pecto.operators.RandomPECTOSG;
 import problems.pecto.operators.RouteCrossover;
+import problems.pecto.operators.SwapTrips;
 import problems.sudoku.PlacementMutation;
 import problems.sudoku.RandomSDKProblemSG;
 import problems.sudoku.RemovalMutation;
 import problems.sudoku.SDKProblem;
 import problems.sudoku.SDKRepresentation;
+import problems.tsp.NearestNeighborTSPSG;
 import problems.tsp.TSPProblem;
 import problems.wflop.CellLayout;
 import problems.wflop.DiscreteWFLOP;
@@ -58,9 +63,12 @@ import representation.DoubleVector;
 import representation.IntegerPermutation;
 import representation.base.Representation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static lab.model.ParamSpec.*;
@@ -80,9 +88,13 @@ public final class Catalog {
     // ---------------------------------------------------------------- problems
 
     private static ProblemSpec<IntegerPermutation, TSPProblem> tsp() {
-        Function<TSPProblem, InitialSolutionGenerator<IntegerPermutation>> isg = p -> new RandomPermutationSG(p.getCityCount());
-        Function<TSPProblem, List<MutationOperator<IntegerPermutation>>> ops =
-                p -> Arrays.asList(new TwoOpt(), new RandomRemoveReinsert<>());
+        Options<TSPProblem, InitialSolutionGenerator<IntegerPermutation>> isg = Options
+                .<TSPProblem, InitialSolutionGenerator<IntegerPermutation>>of("random", p -> new RandomPermutationSG(p.getCityCount()))
+                .or("nearest neighbor", NearestNeighborTSPSG::new);
+        Options<TSPProblem, List<MutationOperator<IntegerPermutation>>> ops = Options
+                .<TSPProblem, List<MutationOperator<IntegerPermutation>>>of("2-opt + remove-reinsert", p -> Arrays.asList(new TwoOpt(), new RandomRemoveReinsert<>()))
+                .or("2-opt", p -> Collections.singletonList(new TwoOpt()))
+                .or("swap + insert", p -> Arrays.asList(new RandomInterchange<>(), new InsertMutation<>(1)));
         Function<TSPProblem, List<CrossOverOperator<IntegerPermutation>>> crossovers =
                 p -> Collections.singletonList(new SimplePermutationCrossover<>());
 
@@ -100,9 +112,9 @@ public final class Catalog {
     }
 
     private static ProblemSpec<SDKRepresentation, SDKProblem> sudoku() {
-        Function<SDKProblem, InitialSolutionGenerator<SDKRepresentation>> isg = RandomSDKProblemSG::new;
-        Function<SDKProblem, List<MutationOperator<SDKRepresentation>>> ops =
-                p -> Arrays.asList(new PlacementMutation(p), new RemovalMutation(p));
+        Options<SDKProblem, InitialSolutionGenerator<SDKRepresentation>> isg = Options.of("random", RandomSDKProblemSG::new);
+        Options<SDKProblem, List<MutationOperator<SDKRepresentation>>> ops =
+                Options.of("placement + removal", p -> Arrays.asList(new PlacementMutation(p), new RemovalMutation(p)));
 
         return new ProblemSpec<>("Sudoku 9x9 (cost 0 = solved)",
                 Collections.<ParamSpec>emptyList(),
@@ -138,10 +150,12 @@ public final class Catalog {
         ProblemSpec<CellLayout, DiscreteWFLOP> discrete = new ProblemSpec<CellLayout, DiscreteWFLOP>("discrete", params,
                 v -> wflopCase(v).createDiscrete(wind(v), v.getInt("turbines (cases 3-4)")),
                 Arrays.asList(
-                        ea(DiscreteWFLOP::randomLayouts, DiscreteWFLOP::neighborhood, p -> Collections.singletonList(p.crossover())),
+                        ea(Options.of("random", DiscreteWFLOP::randomLayouts), Options.of("move / add / remove", DiscreteWFLOP::neighborhood),
+                                p -> Collections.singletonList(p.crossover())),
                         // objective differences between neighbors are ~1e-6, so SA needs a matching temperature scale
-                        sa(DiscreteWFLOP::randomLayouts, DiscreteWFLOP::neighborhood, 1e-5, 1e-9, 0.998, 10),
-                        localSearch(DiscreteWFLOP::randomLayouts, DiscreteWFLOP::neighborhood),
+                        sa(Options.of("random", DiscreteWFLOP::randomLayouts), Options.of("move / add / remove", DiscreteWFLOP::neighborhood),
+                                1e-5, 1e-9, 0.998, 10),
+                        localSearch(Options.of("random", DiscreteWFLOP::randomLayouts), Options.of("move / add / remove", DiscreteWFLOP::neighborhood)),
                         dqn(ConstructiveWFLOP::new)),
                 WFLOPVisualizer.discrete());
 
@@ -165,8 +179,14 @@ public final class Catalog {
                 integer("beds per hospital (custom)", 30, 0, 1000000, "capacity of every hospital of a custom instance"),
                 integer("instance seed", 42, 0, Integer.MAX_VALUE, "seed of the coordinates and urgencies"));
 
-        Function<PECTOProblem, InitialSolutionGenerator<PECTOSolution>> isg = RandomPECTOSG::new;
-        Function<PECTOProblem, List<MutationOperator<PECTOSolution>>> ops = p -> Arrays.asList(new MoveTrip(), new ChangeHospital());
+        // greedy is deterministic: every member of an EA population starts as the same solution
+        Options<PECTOProblem, InitialSolutionGenerator<PECTOSolution>> isg = Options
+                .<PECTOProblem, InitialSolutionGenerator<PECTOSolution>>of("random", RandomPECTOSG::new)
+                .or("greedy", GreedyPECTOSG::new);
+        Options<PECTOProblem, List<MutationOperator<PECTOSolution>>> ops = Options
+                .<PECTOProblem, List<MutationOperator<PECTOSolution>>>of("MoveTrip + ChangeHospital", p -> Arrays.asList(new MoveTrip(), new ChangeHospital()))
+                .or("MoveTrip + ChangeHospital + SwapTrips", p -> Arrays.asList(new MoveTrip(), new ChangeHospital(), new SwapTrips()))
+                .or("MoveTrip + SwapTrips", p -> Arrays.asList(new MoveTrip(), new SwapTrips()));
         Function<PECTOProblem, List<CrossOverOperator<PECTOSolution>>> crossovers = p -> Collections.singletonList(new RouteCrossover());
         ProblemSpec<PECTOSolution, PECTOProblem> routes = new ProblemSpec<>("routes", params, Catalog::pectoInstance,
                 Arrays.asList(
@@ -236,23 +256,60 @@ public final class Catalog {
 
     // ---------------------------------------------------------------- generic algorithms
 
+    /**
+     * The alternatives for one ingredient of an algorithm, such as its initial solutions or its mutation operators, by
+     * the names the lab and the experiment specs use. The first is the default. The parameter is shown even with a
+     * single alternative, so that the lab always tells what a run starts from and how it moves.
+     */
+    private static final class Options<P, T> {
+        private final Map<String, Function<P, T>> byName = new LinkedHashMap<>();
+
+        static <P, T> Options<P, T> of(String name, Function<P, T> make) {
+            return new Options<P, T>().or(name, make);
+        }
+
+        Options<P, T> or(String name, Function<P, T> make) {
+            byName.put(name, make);
+            return this;
+        }
+
+        ParamSpec param(String param, String description) {
+            String[] names = byName.keySet().toArray(new String[0]);
+            return choice(param, names[0], description, names);
+        }
+
+        // the chosen alternative, made for the problem
+        T make(P problem, ParamValues v, String param) {
+            return byName.get(v.getChoice(param)).apply(problem);
+        }
+    }
+
+    private static final String INITIAL = "initial solutions", MOVES = "mutation operators";
+
+    private static List<ParamSpec> params(List<ParamSpec> own, Options<?, ?> isg, Options<?, ?> ops) {
+        List<ParamSpec> all = new ArrayList<>(own);
+        all.add(isg.param(INITIAL, "how the starting solutions are made"));
+        all.add(ops.param(MOVES, "the moves that make neighbors (mutations)"));
+        return all;
+    }
+
     private static <S extends Representation<S>, P extends OptimizationProblem<S>> AlgorithmSpec<S, P> ea(
-            Function<P, InitialSolutionGenerator<S>> isg, Function<P, List<MutationOperator<S>>> ops,
+            Options<P, InitialSolutionGenerator<S>> isg, Options<P, List<MutationOperator<S>>> ops,
             Function<P, List<CrossOverOperator<S>>> crossovers) {
         return new AlgorithmSpec<>("EA",
-                Arrays.asList(
+                params(Arrays.asList(
                         integer("population size", 50, 2, 100000, "number of individuals"),
                         real("crossover rate", 0.8, 0, 1, "probability of crossover per generation"),
                         real("mutation rate", 0.8, 0, 1, "probability of mutation per generation"),
                         integer("tournament size", 3, 1, 1000, "parent selection pressure"),
                         choice("replacement", "steady state", "how offsprings enter the population", "steady state", "mu+lambda"),
-                        integer("immigration period", 0, 0, 1000000, "generations between immigrations (0 = off)")),
+                        integer("immigration period", 0, 0, 1000000, "generations between immigrations (0 = off)")), isg, ops),
                 (p, v) -> {
                     ReplacementStrategy replacement = v.getChoice("replacement").equals("mu+lambda")
                             ? new MuPlusLambdaReplacement() : new SteadyStateReplacement(new SimpleVictimSelector());
-                    EA.Builder<S> b = EA.builder(isg.apply(p))
+                    EA.Builder<S> b = EA.builder(isg.make(p, v, INITIAL))
                             .crossovers(crossovers.apply(p))
-                            .mutations(ops.apply(p))
+                            .mutations(ops.make(p, v, MOVES))
                             .populationSize(v.getInt("population size"))
                             .crossOverStrategy(new SimpleCrossOverStrategy(v.getDouble("crossover rate")))
                             .mutationStrategy(new SimpleMutationStrategy(v.getDouble("mutation rate"), 1))
@@ -266,15 +323,15 @@ public final class Catalog {
     }
 
     private static <S extends Representation<S>, P extends OptimizationProblem<S>> AlgorithmSpec<S, P> sa(
-            Function<P, InitialSolutionGenerator<S>> isg, Function<P, List<MutationOperator<S>>> ops,
+            Options<P, InitialSolutionGenerator<S>> isg, Options<P, List<MutationOperator<S>>> ops,
             double t0, double tMin, double cooling, int innerLoop) {
         return new AlgorithmSpec<>("SA",
-                Arrays.asList(
+                params(Arrays.asList(
                         real("initial temperature", t0, 1e-12, 1e12, "starting temperature"),
                         real("minimum temperature", tMin, 0, 1e12, "the run finishes below this temperature"),
                         real("cooling rate", cooling, 1e-6, 0.999999999, "geometric cooling factor"),
-                        integer("inner loop", innerLoop, 1, 1000000, "neighbors per temperature level")),
-                (p, v) -> SA.builder(ops.apply(p), isg.apply(p))
+                        integer("inner loop", innerLoop, 1, 1000000, "neighbors per temperature level")), isg, ops),
+                (p, v) -> SA.builder(ops.make(p, v, MOVES), isg.make(p, v, INITIAL))
                         .initialTemperature(v.getDouble("initial temperature"))
                         .minimumTemperature(v.getDouble("minimum temperature"))
                         .cooling(new GeometricCooling(v.getDouble("cooling rate")))
@@ -283,11 +340,12 @@ public final class Catalog {
     }
 
     private static <S extends Representation<S>, P extends OptimizationProblem<S>> AlgorithmSpec<S, P> localSearch(
-            Function<P, InitialSolutionGenerator<S>> isg, Function<P, List<MutationOperator<S>>> ops) {
+            Options<P, InitialSolutionGenerator<S>> isg, Options<P, List<MutationOperator<S>>> ops) {
         return new AlgorithmSpec<>("Local Search",
-                Collections.singletonList(integer("max non-improving", 5000, 1, Integer.MAX_VALUE,
-                        "consecutive failed neighbors after which the search ends")),
-                (p, v) -> LocalSearch.builder(ops.apply(p), isg.apply(p)).maxNonImproving(v.getInt("max non-improving")).build());
+                params(Collections.singletonList(integer("max non-improving", 5000, 1, Integer.MAX_VALUE,
+                        "consecutive failed neighbors after which the search ends")), isg, ops),
+                (p, v) -> LocalSearch.builder(ops.make(p, v, MOVES), isg.make(p, v, INITIAL))
+                        .maxNonImproving(v.getInt("max non-improving")).build());
     }
 
     // Ant System for any graph problem type P

@@ -124,8 +124,9 @@ ambulances take patients, one at a time, to hospitals of limited capacity.
   exactly the same result as a full evaluation. Distances are computed from coordinates instead of a 235 MB matrix.
 
 `problems.pecto.operators` has simple feasibility-preserving operators for EA, SA and local search: `MoveTrip`,
-`ChangeHospital`, a uniform `RouteCrossover` with repair, and random initial solutions (`RandomPECTOSG`). They are
-not the paper's operators. `PECTOGraph` views the problem as a `GraphProblem` for ACO: an ant builds a giant tour over
+`ChangeHospital`, `SwapTrips`, a uniform `RouteCrossover` with repair, and random or greedy initial solutions
+(`RandomPECTOSG`, `GreedyPECTOSG`), chosen with the algorithms' `initial solutions` and `mutation operators`
+parameters. They are not the paper's operators. `PECTOGraph` views the problem as a `GraphProblem` for ACO: an ant builds a giant tour over
 the ambulances and patients, which is cut into routes at the ambulances, and every patient goes to the free hospital
 that minimizes its delivery plus the next pickup, so every tour is feasible. ACO keeps node × node matrices, so it
 is practical on custom instances of a few hundred patients but slow on Table I sizes.

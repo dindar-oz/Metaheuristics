@@ -1,11 +1,12 @@
 # 2. Tools
 
-The project has three desktop tools and a command line, all in the same code base:
+The project has four desktop tools and a command line, all in the same code base:
 
 | Tool | Main class | Use it to |
 |---|---|---|
 | **Metaheuristic Lab** | `lab.MetaheuristicLab` | Run several algorithms side by side on one instance and watch them converge. Quick, interactive comparisons and parameter exploration. |
 | **Problem Lab** | `lab.problemlab.ProblemLab` | Understand a problem: build and edit instances and solutions by hand and watch the cost and constraints react. |
+| **PECTOACO diagnosis** | `problems.pecto.aco.gui.PECTOACODiagnosis` | Watch PECTOACO work, live or step by step, forward and back: ratings, shortlists, roulette draws, hospitals, pheromone, improvement, convergence. See [PECTOACO 5.13](05-pecto-aco.md#513-the-diagnosis-tool). |
 | **Experiment Runner** (window + CLI + tray icon) | `experimentrunner.Cli`, `experimentrunner.gui.ExperimentRunnerApp` | Run long, planned experiments in a background process that survives closing the window, the IDE or a reboot. |
 
 Rule of thumb: explore in the labs and **measure with the experiment runner**. Results that go into a paper or a
@@ -63,7 +64,10 @@ How to use it:
 2. **Add algorithm runs.** Choose an algorithm and click *Add*. Every run has its own name and parameter table, so
    you can add the same algorithm several times with different settings (*Duplicate* copies the selected run). For
    PECTO the algorithms are `EA`, `SA`, `Local Search`, `ACO (MMAS)` (= PECTOACO) and `ACO` (generic ant system on the
-   giant-tour encoding).
+   giant-tour encoding). EA, SA and Local Search also have the parameters `initial solutions` (PECTO: *random* or
+   *greedy*; TSP: *random* or *nearest neighbor*) and `mutation operators` (PECTO: *MoveTrip + ChangeHospital*,
+   *+ SwapTrips*, or *MoveTrip + SwapTrips*; TSP: *2-opt + remove-reinsert*, *2-opt*, or *swap + insert*). The first
+   alternative is the default; Sudoku and the wind farm have one of each.
 3. **Set the budget.** *Max evaluations*, *Time limit* (0 = none) and *Target cost*. The run stops at the first limit
    reached. *Seed* is the base seed: run *i* of the list uses `Seeds.derive(seed, i)`, so pressing *Run* again with
    the same settings gives identical results.

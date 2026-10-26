@@ -87,7 +87,7 @@ public final class EA<S extends Representation<S>> extends AbstractMetaheuristic
 
     @Override
     protected String parameters() {
-        return "populationSize=" + populationSize + ", crossovers=" + Params.describe(crossOverOperators)
+        return "populationSize=" + populationSize + ", initial=" + Params.describe(generator) + ", crossovers=" + Params.describe(crossOverOperators)
                 + ", mutations=" + Params.describe(mutationOperators) + ", parents=" + Params.describe(parentSelector)
                 + ", " + Params.describe(crossOverStrategy) + ", " + Params.describe(mutationStrategy)
                 + ", " + Params.describe(replacementStrategy) + (hooks.isEmpty() ? "" : ", hooks=" + Params.describe(hooks));
