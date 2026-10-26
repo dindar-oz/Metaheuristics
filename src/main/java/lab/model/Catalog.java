@@ -22,6 +22,10 @@ import metaheuristic.ea.parentselector.TournamentParentSelector;
 import metaheuristic.ea.replacement.MuPlusLambdaReplacement;
 import metaheuristic.ea.replacement.SteadyStateReplacement;
 import metaheuristic.ea.victimselector.SimpleVictimSelector;
+import metaheuristic.hybridga.AlternatingRouteCrossover;
+import metaheuristic.hybridga.CloneCrossover;
+import metaheuristic.hybridga.HybridGA;
+import metaheuristic.hybridga.PECTOHybridGA;
 import metaheuristic.ls.LocalSearch;
 import metaheuristic.pso.PSO;
 import metaheuristic.rl.FeaturedConstructiveProblem;
@@ -194,7 +198,8 @@ public final class Catalog {
                         // the paper's tuned initial temperature; cooled to the minimum in ~100 000 evaluations
                         sa(isg, ops, 25, 0.01, 0.9985, 20),
                         localSearch(isg, ops),
-                        pectoAco()),
+                        pectoAco(),
+                        pectoHybridGa()),
                 new PECTOVisualizer());
 
         // ACO keeps three node x node matrices: ~170 MB for Table I: 1, ~690 MB for Table I: 10
@@ -362,6 +367,81 @@ public final class Catalog {
                         .beta(v.getDouble("beta"))
                         .rho(v.getDouble("rho"))
                         .build());
+    }
+
+    // the research hybrid GA (metaheuristic.hybridga): ARX crossover, migrants on stagnation, local search and SA
+    private static AlgorithmSpec<PECTOSolution, PECTOProblem> pectoHybridGa() {
+        return new AlgorithmSpec<>("Hybrid GA",
+                Arrays.asList(
+                        integer("population", 40, 2, 100000, "individuals"),
+                        choice("seeding", "mixed", "mixed: half random, a quarter partly greedy, a quarter randomized "
+                                + "greedy (also the migrants, in turn); random: all random", "mixed", "random"),
+                        choice("crossover", "ARX", "ARX: alternating route crossover; uniform route: the generic "
+                                + "RouteCrossover (random routes, random repair); none: the child is a copy of a parent",
+                                "ARX", "uniform route", "none"),
+                        real("crossover rate", 0.75, 0, 1, "probability that a pair of parents is crossed"),
+                        real("cheaper route", 0.75, 0, 1, "probability that ARX takes the cheaper parent's route of an "
+                                + "ambulance; 0.5 = no cost bias"),
+                        choice("ARX repair", "best insertion", "how ARX inserts the patients left without a trip: on the "
+                                + "nearest ambulance at the cheapest position, or on a random route at a random position",
+                                "best insertion", "random"),
+                        real("roulette", 0.75, 0, 1, "probability that the parents are drawn by roulette on 1 / cost "
+                                + "rather than by tournament"),
+                        choice("mutation", "costliest route move", "offspring mutation: a trip from the costliest to the "
+                                + "cheapest route (domain-aware), a random trip to a random place (MoveTrip), or none",
+                                "costliest route move", "move trip", "none"),
+                        real("mutation rate", 0.05, 0, 1, "initial probability that an offspring is mutated"),
+                        real("mutation rate growth", 1.1, 1, 10, "factor applied to the mutation rate at every stagnation "
+                                + "(kept in [0.05, 0.75]); 1 = fixed rate"),
+                        integer("stagnation period", 100, 1, 1000000, "generations without improvement of the "
+                                + "population's best that trigger the stagnation response"),
+                        choice("immigration", "on", "on stagnation, migrants replace old individuals", "on", "off"),
+                        real("migrant share", 0.1, 0, 1, "share of the population that immigrates on stagnation, and "
+                                + "of the oldest spared by the perturbation"),
+                        choice("perturbation", "on", "on stagnation, every individual but the oldest is swap-mutated",
+                                "on", "off"),
+                        integer("min victim age", 3, 0, 1000000, "generations an individual is safe from replacement"),
+                        choice("hybrid", "on", "on: local search of every offspring and simulated annealing of the "
+                                + "best individual every generation", "on", "off"),
+                        integer("local search steps", 10, 0, 1000000, "neighbors tried on every offspring (first improvement)"),
+                        real("SA t0", 25, 0.001, 1e9, "initial temperature of the annealing of the best individual"),
+                        real("SA t min", 0.1, 0, 1e9, "temperature at which the annealing ends"),
+                        real("SA cooling", 0.95, 0.01, 0.9999, "geometric cooling factor"),
+                        integer("SA inner loop", 1, 0, 1000000, "neighbors per temperature (0: no annealing)")),
+                (p, v) -> pectoHybridGaBuilder(p, v)
+                        .populationSize(v.getInt("population"))
+                        .crossoverRate(v.getDouble("crossover rate"))
+                        .parentSelectors(null, null, v.getDouble("roulette"))
+                        .stagnationPeriod(v.getInt("stagnation period"))
+                        .immigration(v.getChoice("immigration").equals("on"))
+                        .migrantShare(v.getDouble("migrant share"))
+                        .perturbationOnStagnation(v.getChoice("perturbation").equals("on"))
+                        .minVictimAge(v.getInt("min victim age"))
+                        .hybrid(v.getChoice("hybrid").equals("on"))
+                        .localSearchSteps(v.getInt("local search steps"))
+                        .annealing(v.getDouble("SA t0"), Math.min(v.getDouble("SA t min"), v.getDouble("SA t0") / 2),
+                                new GeometricCooling(v.getDouble("SA cooling")), v.getInt("SA inner loop"))
+                        .build());
+    }
+
+    // the hybrid GA's seeding, crossover and mutation from the lab parameters (each mechanism can be switched off)
+    private static HybridGA.Builder<PECTOSolution> pectoHybridGaBuilder(PECTOProblem p, ParamValues v) {
+        HybridGA.Builder<PECTOSolution> b = PECTOHybridGA.builder(p);
+        if (v.getChoice("seeding").equals("random"))
+            b.clearSources().source(new RandomPECTOSG(p), 1);
+        switch (v.getChoice("crossover")) {
+            case "uniform route" -> b.crossover(new RouteCrossover());
+            case "none" -> b.crossover(new CloneCrossover<>());
+            default -> b.crossover(new AlternatingRouteCrossover(v.getDouble("cheaper route"),
+                    v.getChoice("ARX repair").equals("best insertion")));
+        }
+        double rate = v.getDouble("mutation rate"), growth = v.getDouble("mutation rate growth");
+        switch (v.getChoice("mutation")) {
+            case "move trip" -> b.mutation(new MoveTrip()).mutationRate(rate).mutationRateAdaptation(growth, 0.05, 0.75);
+            case "none" -> b.mutationRate(0).mutationRateAdaptation(1, 0, 0);
+            default -> b.mutationRate(rate).mutationRateAdaptation(growth, 0.05, 0.75);
+        }
+        return b;
     }
 
     // MAX-MIN ant colony that builds PECTO routes directly
