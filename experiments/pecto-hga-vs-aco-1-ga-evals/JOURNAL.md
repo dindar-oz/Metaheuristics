@@ -254,7 +254,7 @@ Verdicts by the decision rule at 1M evaluations (part 6), with the 181,501-evalu
 
 ### 3. Next step: round 2, by the decision rule
 
-_Submitted 2026-10-27 08:20 as `pecto-hga-reduced-r2` (three parts); see [its hub journal](../pecto-hga-reduced-r2-1-181k/JOURNAL.md)._
+_Submitted 2026-10-27 08:20 as `pecto-hga-reduced-r2` (three parts); see [its hub journal](../pecto-hga-reduced-r2-1-181k/JOURNAL.md)._ _Round 3 (`pecto-hga-components-r3`, submitted the same day) checks every component around the reduced GA, on new instances and at two budgets; see [its hub journal](../pecto-hga-components-r3-1-1m/JOURNAL.md)._
 
 - **The reduced GA** keeps everything ESSENTIAL or INCONCLUSIVE: mixed greedy seeding, ARX with cheaper-route preference and best-insertion repair, local search of the offspring, and age-protected replacement. It drops everything HARMFUL or REMOVABLE: the roulette share (tournament only), offspring mutation (and with it the rate growth), the whole stagnation response, and SA.
 - **The test:** the reduced GA against the default on new seeds (base 20261027), at 181,501 evaluations, 1M evaluations and 600 s. The reduction is accepted if the upper end of the 95 % interval of the mean gap is below +0.1 %.
