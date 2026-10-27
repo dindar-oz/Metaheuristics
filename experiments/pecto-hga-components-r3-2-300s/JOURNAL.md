@@ -46,6 +46,10 @@ Per budget, for a KEPT component (variant R-x): it is NEEDED if R-x is significa
 
 Part of round 3 (two parts). The design notes and the conclusions are in [the round-3 hub journal](../pecto-hga-components-r3-1-1m/JOURNAL.md).
 
+**2026-10-27: paused during a lab session.** While the user ran the Metaheuristic Lab, this time-limited part was paused before any of its runs had started, and resumed afterwards. None of its runs shared the CPU with the lab. During the session only evaluation-limited runs were in flight, whose results do not depend on CPU load.
+
+**2026-10-27 09:41: 7 runs stopped after about a minute.** The worker started this part's first runs in the seconds between pausing round 2's 600 s part and this one; they were stopped at once (`pause --now`) and run again from the start later, when PECTOACO development and benchmarking were finished. No finished run overlapped extra load.
+
 ## Results
 
 <!-- results:start (written by the worker; edit outside this block) -->

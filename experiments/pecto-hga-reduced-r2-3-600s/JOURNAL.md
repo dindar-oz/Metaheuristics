@@ -40,6 +40,10 @@ Per budget: the reduction is ACCEPTED if the upper end of the 95 % interval of t
 
 Part of round 2 (three parts). The design notes and the conclusions are in [the round-2 hub journal](../pecto-hga-reduced-r2-1-181k/JOURNAL.md).
 
+**2026-10-27: paused during a lab session.** While the user ran the Metaheuristic Lab, this time-limited part was paused before any of its runs had started, and resumed afterwards. None of its runs shared the CPU with the lab. During the session only evaluation-limited runs were in flight, whose results do not depend on CPU load.
+
+**2026-10-27: two interruptions, no runs affected.** (1) About 09:10, the queue was paused for a 3-minute profiling run of PECTOACO; the 5 runs of this part then in flight were stopped and run again from the start later. (2) At 09:41 (14 of 100 runs done), this part was paused again so that development and benchmarking of PECTOACO could happen while only evaluation-limited runs were in flight; the 7 runs then in flight were stopped and run again from the start later. In both cases no finished run overlapped extra load, so the recorded results are unaffected.
+
 ## Results
 
 <!-- results:start (written by the worker; edit outside this block) -->
