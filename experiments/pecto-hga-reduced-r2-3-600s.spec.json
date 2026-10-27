@@ -1,0 +1,80 @@
+{
+  "id": "pecto-hga-reduced-r2-3-600s",
+  "title": "Reduced hybrid GA, round 2, part 3: 600 s",
+  "question": "Is the reduced hybrid GA, which drops every mechanism that round 1 (pecto-hga-vs-aco parts 5 and 6) labeled HARMFUL or REMOVABLE, at least as good as the full GA when the mechanisms are removed together? Removed: the roulette share of selection (tournament only), offspring mutation (and with it the mutation-rate growth), the whole stagnation response (immigration, perturbation, rate growth) and SA on the best individual. Kept: mixed greedy seeding, ARX with cheaper-route preference and best-insertion repair, local search of the offspring, age-protected replacement (inconclusive in round 1, so kept). Secondary: how the reduced GA compares with PECTOACO at 600 s.",
+  "hypothesis": "Round 1 at 1M evaluations, one removal at a time (mean paired gap to the default): tournament only -2.45 %, no mutation -0.17 %, no stagnation response -0.16 %, no SA -0.03 %; at 181,501 evaluations: -0.98 %, -0.01 %, +0.00 %, -0.38 %. If the effects added up, the reduced GA would be about 2.5-3 % better at 1M and about 1.4 % at 181,501. Two risks: (1) interaction: tournament-only selection already ended round 1 with 70 % duplicates, and without the stagnation response nothing re-diversifies the population, so it may collapse; (2) time: without SA the GA ran at about half the evaluations per second (4,514 vs 9,598 in round 1), so at 600 s the reduced GA gets fewer evaluations than the default. Expectation: the reduction is accepted at both evaluation budgets and is better by at least 1 %; at 600 s it is still accepted, by a smaller margin. Against PECTOACO at 600 s the reduced GA narrows the gap on T7 and T10 (round 1 tournament-only was -6.4 % vs the default on T10) but does not close it.",
+  "analysisPlan": "Three experiments, one per budget: pecto-hga-reduced-r2-1-181k (181,501 evaluations), -2-1m (1,000,000 evaluations), -3-600s (600 s wall time). Two configurations, 'default' (the full research GA) and 'reduced'; the same 5 instances as round 1 (C100; Table I 1, 4, 7, 10; instance seed 42) and NEW seeds (base 20261027, repeats 0-9), so round 1's selection of mechanisms is tested on runs it was not chosen from. Paired by instance and repeat. PRIMARY, per budget over the 50 pairs: paired gap (reduced - default) / default in %, mean with 95 % t-interval, better/worse counts, exact two-sided Wilcoxon signed-rank; per instance (10 pairs) descriptive. SECONDARY: (1) the reduced GA at 600 s against PECTOACO's 600 s runs of pecto-hga-vs-aco-4-aco-time (unpaired: exact Mann-Whitney U per instance, Holm over 5, gap of medians, A12; different seeds are fine for an unpaired comparison); (2) activity at the end (duplicates, diversity, stagnation, evaluations per second, generations), to see whether the population collapses; (3) anytime median curves at 600 s. Analysis script: analyze.py in the folder of pecto-hga-reduced-r2-1-181k, written before any result.",
+  "decisionRule": "Per budget: the reduction is ACCEPTED if the upper end of the 95 % interval of the mean paired gap is below +0.1 % (the reduced GA is not worse by 0.1 % or more), and the reduced GA is also BETTER if Wilcoxon p < 0.05 and the mean gap is at most -0.1 %. The reduced GA becomes the recommended default if it is accepted at all three budgets. If it is rejected at a budget, the per-instance gaps and the activity metrics decide which removal to undo first (no further claim without a new round). The PECTOACO comparison is descriptive and does not change the verdict. Conclusions go in the journal of pecto-hga-reduced-r2-1-181k.",
+  "problem": "Casualty transport (PECTO)",
+  "problemParams": {
+    "instance seed": 42.0
+  },
+  "instances": [
+    {
+      "label": "C100",
+      "seedKey": 100,
+      "params": {
+        "instance": "custom",
+        "ambulances (custom)": 10.0,
+        "patients (custom)": 100.0,
+        "hospitals (custom)": 5.0,
+        "beds per hospital (custom)": 30.0
+      }
+    },
+    {
+      "label": "T1",
+      "seedKey": 1,
+      "params": {
+        "instance": "Table I: 1"
+      }
+    },
+    {
+      "label": "T4",
+      "seedKey": 4,
+      "params": {
+        "instance": "Table I: 4"
+      }
+    },
+    {
+      "label": "T7",
+      "seedKey": 7,
+      "params": {
+        "instance": "Table I: 7"
+      }
+    },
+    {
+      "label": "T10",
+      "seedKey": 10,
+      "params": {
+        "instance": "Table I: 10"
+      }
+    }
+  ],
+  "algorithm": "Hybrid GA",
+  "algorithmParams": {},
+  "configs": [
+    {
+      "label": "default",
+      "params": {}
+    },
+    {
+      "label": "reduced",
+      "params": {
+        "roulette": 0.0,
+        "mutation": "none",
+        "stagnation period": 1000000.0,
+        "SA inner loop": 0.0
+      }
+    }
+  ],
+  "baseline": "default",
+  "seeds": {
+    "base": 20261027,
+    "firstRepeat": 0,
+    "repeats": 10
+  },
+  "budget": {
+    "millis": 600000
+  },
+  "traceEvery": 200
+}

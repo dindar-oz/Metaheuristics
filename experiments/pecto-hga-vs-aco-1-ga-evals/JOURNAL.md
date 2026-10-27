@@ -252,7 +252,9 @@ Verdicts by the decision rule at 1M evaluations (part 6), with the 181,501-evalu
 - *Equal evaluations favor configurations with expensive evaluations.* Evaluations differ in cost: SA and local search neighbors change two routes, crossover children are built from scratch. Without SA the GA runs at 4,514 instead of 9,598 evaluations per second, and plain at 719. At equal time, removing SA could therefore be worse than these results suggest. The planned round 2 tests the reduced GA at 600 s for this reason.
 - *Interactions are not tested.* Removing one mechanism at a time does not test them: for example, whether tournament-only selection without the stagnation response lets the population collapse (tournament-only already ends with 70 % duplicates).
 
-### 3. Next step: round 2, by the decision rule (not yet submitted)
+### 3. Next step: round 2, by the decision rule
+
+_Submitted 2026-10-27 08:20 as `pecto-hga-reduced-r2` (three parts); see [its hub journal](../pecto-hga-reduced-r2-1-181k/JOURNAL.md)._
 
 - **The reduced GA** keeps everything ESSENTIAL or INCONCLUSIVE: mixed greedy seeding, ARX with cheaper-route preference and best-insertion repair, local search of the offspring, and age-protected replacement. It drops everything HARMFUL or REMOVABLE: the roulette share (tournament only), offspring mutation (and with it the rate growth), the whole stagnation response, and SA.
 - **The test:** the reduced GA against the default on new seeds (base 20261027), at 181,501 evaluations, 1M evaluations and 600 s. The reduction is accepted if the upper end of the 95 % interval of the mean gap is below +0.1 %.
