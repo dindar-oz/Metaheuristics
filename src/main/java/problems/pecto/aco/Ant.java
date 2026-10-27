@@ -64,6 +64,9 @@ final class Ant {
     private final int[] ratedHead;
     private final int[] ratedNext;
     private final int[] ratedPrev;
+    // rating[a], or +infinity while it is UNKNOWN: lets chooseAmbulance skip the ambulances it would rule out with one
+    // tight loop over one array (about 16 of 200 ambulances are not ruled out at a step on Table I instances)
+    private final double[] key;
 
     // scratch space of the draws
     private final int[] top;                    // the shortlist, best first
@@ -111,6 +114,7 @@ final class Ant {
         ratedHead = new int[patients];
         ratedNext = new int[ambulances];
         ratedPrev = new int[ambulances];
+        key = new double[ambulances];
         top = new int[Math.min(aco.shortlist, ambulances)];
         choiceHospitals = new int[Math.min(aco.hospitalCandidates, hospitals)];
         choiceWeights = new double[Math.max(choiceHospitals.length, aco.candidates)];
@@ -141,7 +145,7 @@ final class Ant {
             at[a] = a;
             pending[a] = -1;
             stopCount[a] = 0;
-            rateState[a] = UNKNOWN;
+            markUnknown(a);
             rated[a] = -1;
         }
         Arrays.fill(ratedHead, -1);
@@ -156,6 +160,15 @@ final class Ant {
     private int chooseAmbulance() {
         int count = 0;
         for (int a = 0; a < ambulances; a++) {
+            if (count == top.length) {
+                // skips exactly the ambulances the check below rules out without rating: a known rating at most the
+                // worst on the shortlist (UNKNOWN keys are +infinity, so they are always rated)
+                double worst = rating[top[count - 1]];
+                while (a < ambulances && key[a] <= worst)
+                    a++;
+                if (a == ambulances)
+                    break;
+            }
             if (rateState[a] == UNKNOWN)
                 rate(a);
             if (count == top.length && rating[a] <= rating[top[count - 1]])
@@ -207,7 +220,13 @@ final class Ant {
             ratedHead[k] = a;
         }
         rateState[a] = EXACT;
+        key[a] = best;
         ratedNearest[a] = remaining[previous[a]] == 0;
+    }
+
+    private void markUnknown(int a) {
+        rateState[a] = UNKNOWN;
+        key[a] = Double.POSITIVE_INFINITY;
     }
 
     // the unserved patient nearest to where an ambulance is (urgency-weighted)
@@ -227,9 +246,13 @@ final class Ant {
     // best. Fixing it changes the runs (see PECTOACOGoldenTest).
     private void ratingsAfterServing(int q, int a) {
         for (int b = ratedHead[patientIndex(q)]; b >= 0; b = ratedNext[b])
-            if (rateState[b] == EXACT)
-                rateState[b] = ratedNearest[b] || remaining[previous[b]] > 0 ? BOUND : UNKNOWN;
-        rateState[a] = UNKNOWN;     // it moved
+            if (rateState[b] == EXACT) {
+                if (ratedNearest[b] || remaining[previous[b]] > 0)
+                    rateState[b] = BOUND;   // the rating stays, as an upper bound: its key does not change
+                else
+                    markUnknown(b);
+            }
+        markUnknown(a);             // it moved
     }
 
     // ---- patient
