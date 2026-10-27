@@ -179,4 +179,82 @@ Gap: (cost − default cost) / default cost of the run with the same instance an
 
 ## Conclusions
 
-_Not written yet: read the results against the analysis plan and the decision rule, then write here what was decided and why._
+_Written 2026-10-27 from `analysis.md` (regenerate with `analyze.py`), after all six parts finished: 2,150 runs, no errors. The replication check passed: the 200 runs that part 5 shares with part 1 have identical final costs._
+
+### 1. Hybrid GA vs PECTOACO
+
+**Verdict, by the decision rule: instance-dependent, at both budgets.** In every comparison one algorithm beat the other in all 100 run pairs (A12 = 0 or 1, Holm p < 0.001).
+
+| instance | beds used | gap at 181,501 evaluations | gap at 600 s | winner |
+|---|---|---|---|---|
+| C100 (100 patients) | 67 % | −0.76 % | −0.70 % | GA |
+| T1 (2430) | 47 % | −0.45 % | −1.37 % | GA |
+| T4 (3341) | 64 % | +3.93 % | +1.97 % | PECTOACO |
+| T7 (4252) | 82 % | +12.07 % | +8.38 % | PECTOACO |
+| T10 (5163) | 99.6 % | +21.88 % | +15.21 % | PECTOACO |
+
+Gap = (median GA − median PECTOACO) / median PECTOACO; negative means the GA is cheaper.
+
+- **H1 and H2 confirmed.** PECTOACO wins on the large instances by more than 10 % at equal evaluations. Equal time narrows the gap but does not close it.
+- **Evaluation counts at 600 s.** The GA does 36-46 times more evaluations than PECTOACO on Table I (T10 4.06 M vs 88 k, T1 7.6 M vs 210 k) and about 10 times more on C100. It still loses on T4-T10.
+- **How the two searches progress.** PECTOACO converges almost at once. On T10 its median is 172,884 after 10,000 evaluations and 172,036 after 181,501, and its 600 s result (172,146) equals its 181,501-evaluation result. The GA keeps improving slowly: on T10, 215,466 → 209,669 over the evaluation budget, and 211,864 at 15 s → 198,323 at 600 s.
+- **The pattern.** The GA's disadvantage grows steadily from T1 to T10. Instance size and the share of beds used grow together in Table I, so these data cannot say which one drives it. C100 (small, 67 % of beds used) goes to the GA while T4 (64 %) goes to PECTOACO, which points to size at least as much as to bed usage.
+- **Why PECTOACO wins the large instances (hypothesis, not tested).** On T10 the greedy solution with optimal hospitals alone costs 197,377 (probe). That is already better than the GA's 600 s median, 198,323. PECTOACO optimizes the hospitals of its best ant every iteration; the GA never reassigns hospitals beyond `SwapParticipants`, which keeps every hospital's load.
+- **The lab observation that prompted this.** *Cost:* the GA is better on T1, the lab's default instance, at both budgets. That part of the observation is reproduced. *Diversity:* it is not reproduced on any instance at any time. The GA's population diversity is lower than PECTOACO's at iteration 25 (0.23-0.38 vs 0.50-0.57), after 100 iterations (0.01-0.05 vs 0.18-0.31) and at the end (0.001-0.03 vs 0.07-0.15 on Table I). The only exception is C100 at 600 s, where both are about 0.16. H4 is confirmed: the observation must have come from another instance or setting. The two numbers also measure different sets (see Notes).
+- **Load check.** In the time parts, evaluations per second varied by about ±15 % across finishing order, with no trend. That is negligible next to gaps of 2-15 %.
+
+### 2. Which GA mechanisms work (parts 5 and 6)
+
+Verdicts by the decision rule at 1M evaluations (part 6), with the 181,501-evaluation results (part 5) for comparison. Mean paired gap of the variant to the default; positive means removing the mechanism hurts.
+
+| mechanism | variant | 1M: gap, 95 % interval | 1M verdict | 181k gap | 181k verdict |
+|---|---|---|---|---|---|
+| greedy-based seeding | seedRandom | +10.18 % [8.70, 11.66] | ESSENTIAL | +23.58 % | ESSENTIAL |
+| ARX best-insertion repair | xRandomRepair | +11.56 % [9.38, 13.74] | ESSENTIAL | +10.06 % | ESSENTIAL |
+| ARX vs generic RouteCrossover | xUniform | +11.57 % [9.40, 13.75] | ESSENTIAL | +10.06 % | ESSENTIAL |
+| recombination at all | xNone | +4.71 % [3.92, 5.50] | ESSENTIAL | +7.20 % | ESSENTIAL |
+| ARX cheaper-route preference | xUnbiased | +1.47 % [0.93, 2.00] | ESSENTIAL | +1.90 % | ESSENTIAL |
+| tournament share of selection | selRoulette (roulette only) | +1.05 % [0.78, 1.32] | ESSENTIAL | +0.63 % | ESSENTIAL |
+| roulette share of selection | selTournament (tournament only) | −2.45 % [−3.12, −1.78] | **HARMFUL** | −0.98 % | HARMFUL |
+| local search of the offspring | noLS | +0.27 % [0.15, 0.39] | ESSENTIAL | +0.02 % | INCONCLUSIVE |
+| SA on the best individual | noSA | −0.03 % [−0.14, 0.08] | REMOVABLE | −0.38 % | HARMFUL |
+| local search and SA | plain | +0.61 % [0.39, 0.83] | ESSENTIAL | −0.16 % | REMOVABLE |
+| offspring mutation | mNone | −0.17 % [−0.31, −0.03] | **HARMFUL** | −0.01 % | INCONCLUSIVE |
+| domain-aware vs generic mutation | mMoveTrip | −0.11 % [−0.24, 0.02] | REMOVABLE | +0.04 % | INCONCLUSIVE |
+| mutation-rate growth | mFixedRate | −0.17 % [−0.29, −0.05] | **HARMFUL** | −0.04 % | REMOVABLE |
+| immigration | noImmigration | −0.06 % [−0.17, 0.06] | REMOVABLE | −0.01 % | REMOVABLE |
+| perturbation | noPerturbation | −0.11 % [−0.20, −0.01] | REMOVABLE | −0.08 % | REMOVABLE |
+| whole stagnation response | noStagnation | −0.16 % [−0.25, −0.06] | **HARMFUL** | +0.00 % | REMOVABLE |
+| age protection | noAgeing | +0.06 % [−0.11, 0.23] | INCONCLUSIVE | −0.10 % | REMOVABLE |
+
+**Effective, worth keeping.**
+- *The domain knowledge in seeding and recombination.* This is what makes the GA work. Random seeding costs 10 % at 1M evaluations, and 24 % at 181k. ARX's best-insertion repair is worth 11.6 %: without it ARX is no better than the generic `RouteCrossover` (both +11.6 %). It even does worse than no recombination at all (+4.7 %), so a crossover that repairs badly is worse than none. ARX's preference for the cheaper route adds 1.5 %. Local search of the offspring is a small but real gain at 1M (+0.27 %).
+- *Selection pressure.* Tournament-only selection is the single largest improvement found: −2.45 % on average, −6.4 % on T10, better in all 50 pairs. Roulette-only is worse (+1.05 %). The research mix (75 % roulette) applies too little pressure.
+
+**Removable or harmful.**
+- *The stagnation response.* Immigration and perturbation are removable, and the whole response is slightly harmful (−0.16 %). Over 1M evaluations it fired about 30 times per run. Yet the default ended stagnated (780 generations without a new population best), with the mutation rate at its 0.75 cap.
+- *The offspring mutation and its rate growth.* Both are slightly harmful (−0.17 % each). The domain-aware `CostliestRouteMove` is no better than the generic `MoveTrip`. The harm of the stagnation response seems to come mostly from pushing the mutation rate to 0.75: removing the growth alone (mFixedRate) gives the same −0.17 %.
+- *SA on the best individual.* Removable at 1M, harmful at 181k (−0.38 %). It spends 108 of the about 190 evaluations of each generation, which pays off less than the same evaluations spent on crossover.
+- *Age protection.* Inconclusive: no effect on average, +0.25 % on T10.
+
+**Hypotheses (a)-(f) of parts 5-6.**
+- *(a) confirmed:* ARX's repair and the seeding matter most.
+- *(b) half confirmed:* local search matters and plain is the worst refinement variant, but SA does not matter.
+- *(c) mostly confirmed:* immigration and perturbation are removable, but the rate growth is slightly harmful rather than neutral, and age protection is inconclusive.
+- *(d) confirmed:* the domain-aware mutation is no better than `MoveTrip`.
+- *(e) confirmed:* no recombination is clearly worse, except on C100 (−0.12 %).
+- *(f) confirmed.*
+- *Not anticipated:* the strong effect of selection pressure.
+
+**Effects grow with instance size.** Almost every effect is largest on T7/T10 and smallest on C100. On C100, xUnbiased (−0.24 %) and xNone (−0.12 %) are even slightly better than the default.
+
+**Caveats.**
+- *Equal evaluations favor configurations with expensive evaluations.* Evaluations differ in cost: SA and local search neighbors change two routes, crossover children are built from scratch. Without SA the GA runs at 4,514 instead of 9,598 evaluations per second, and plain at 719. At equal time, removing SA could therefore be worse than these results suggest. The planned round 2 tests the reduced GA at 600 s for this reason.
+- *Interactions are not tested.* Removing one mechanism at a time does not test them: for example, whether tournament-only selection without the stagnation response lets the population collapse (tournament-only already ends with 70 % duplicates).
+
+### 3. Next step: round 2, by the decision rule (not yet submitted)
+
+- **The reduced GA** keeps everything ESSENTIAL or INCONCLUSIVE: mixed greedy seeding, ARX with cheaper-route preference and best-insertion repair, local search of the offspring, and age-protected replacement. It drops everything HARMFUL or REMOVABLE: the roulette share (tournament only), offspring mutation (and with it the rate growth), the whole stagnation response, and SA.
+- **The test:** the reduced GA against the default on new seeds (base 20261027), at 181,501 evaluations, 1M evaluations and 600 s. The reduction is accepted if the upper end of the 95 % interval of the mean gap is below +0.1 %.
+- **Secondary, descriptive:** the reduced GA at 600 s against the part-4 PECTOACO runs (an unpaired comparison, so different seeds are fine).
+- **Worth testing separately:** the hospital hypothesis of section 1, by adding OptimalHospitals to the GA (for example to the best individual each generation, as PECTOACO does).

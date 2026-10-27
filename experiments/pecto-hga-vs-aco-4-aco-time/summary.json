@@ -1,0 +1,47 @@
+{
+  "experiment": "pecto-hga-vs-aco-4-aco-time",
+  "runs": 50,
+  "total": 50,
+  "baseline": "default",
+  "rows": [
+    {
+      "config": "default",
+      "n": 50,
+      "meanCost": 94526.18281723419,
+      "medianCost": 91876.34664136785,
+      "sdCost": 55211.92214932756,
+      "minCost": 11228.515781443124,
+      "perInstanceCost": {
+        "C100": 11250.650285623431,
+        "T1": 67585.14820660112,
+        "T4": 91869.71562711123,
+        "T7": 129760.44048813081,
+        "T10": 172164.9594787043
+      },
+      "metrics": {
+        "branchingFactor": 1.09507607059673,
+        "currentCost": 94790.18497413525,
+        "diversity": 0.11859693264493465,
+        "duplicates": 0.0,
+        "explorerWins": 24.48,
+        "meanCost": 100334.61548322019,
+        "stagnation": 8870.62
+      },
+      "pairs": 50,
+      "gap": 0.0,
+      "gapLow": 0.0,
+      "gapHigh": 0.0,
+      "better": 0,
+      "worse": 0,
+      "p": 1.0,
+      "pHolm": 1.0,
+      "perInstanceGap": {
+        "C100": 0.0,
+        "T1": 0.0,
+        "T4": 0.0,
+        "T7": 0.0,
+        "T10": 0.0
+      }
+    }
+  ]
+}

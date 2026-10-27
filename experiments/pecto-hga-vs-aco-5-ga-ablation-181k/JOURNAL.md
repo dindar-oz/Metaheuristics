@@ -59,9 +59,57 @@ Part of a six-part comparison; parts 5 and 6 are the same ablation at two budget
 ## Results
 
 <!-- results:start (written by the worker; edit outside this block) -->
-No runs finished yet.
+_Updated 2026-10-27 00:41; also in summary.md._
+
+900 of 900 runs finished.
+
+| configuration | n | mean cost | median | gap to default % | 95% interval | better/worse | p | Holm p | diversity | duplicates | immigrations | mutationRate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| selTournament | 50 | 104307.2578 | 95072.1195 | -0.982 | -1.305 … -0.659 | 45/5 | <0.001 | <0.001 | 0.001498 | 0.6670 | 1.020 | 0.05609 |
+| noSA | 50 | 105315.0501 | 95096.2133 | -0.380 | -0.559 … -0.202 | 36/14 | <0.001 | <0.001 | 0.01857 | 0.4065 | 9.280 | 0.1389 |
+| plain | 50 | 105369.0851 | 94921.8392 | -0.158 | -0.413 … +0.097 | 37/13 | 0.133 | 1.000 | 0.03250 | 0.04750 | 133.2 | 0.7500 |
+| noAgeing | 50 | 105660.4719 | 95475.7057 | -0.102 | -0.259 … +0.055 | 29/21 | 0.230 | 1.000 | 0.02058 | 0.2275 | 2.840 | 0.06712 |
+| noPerturbation | 50 | 105797.6908 | 95472.6829 | -0.078 | -0.137 … -0.019 | 31/12 | 0.014 | 0.130 | 0.01464 | 0.3330 | 2.700 | 0.06590 |
+| mFixedRate | 50 | 105847.2965 | 95402.2591 | -0.037 | -0.087 … +0.012 | 26/16 | 0.243 | 1.000 | 0.01705 | 0.3465 | 3.040 | 0.05000 |
+| mNone | 50 | 105870.2323 | 95590.5866 | -0.013 | -0.204 … +0.178 | 26/24 | 0.796 | 1.000 | 0.01200 | 0.4260 | 2.500 | 0.000 |
+| noImmigration | 50 | 105859.4136 | 95406.1021 | -0.013 | -0.079 … +0.053 | 20/22 | 0.629 | 1.000 | 0.01363 | 0.2945 | 2.720 | 0.06591 |
+| default | 50 | 105916.1911 | 95483.4952 | +0.000 | +0.000 … +0.000 | 0/0 | 1.000 | 1.000 | 0.02588 | 0.3175 | 2.780 | 0.06628 |
+| noStagnation | 50 | 105901.4938 | 95575.2602 | +0.004 | -0.051 … +0.059 | 18/24 | 0.435 | 1.000 | 0.01285 | 0.3875 | 0.000 | 0.05000 |
+| noLS | 50 | 105889.4031 | 95593.4559 | +0.023 | -0.119 … +0.166 | 17/33 | 0.372 | 1.000 | 0.01422 | 0.4180 | 7.020 | 0.1023 |
+| mMoveTrip | 50 | 106024.3080 | 95380.3277 | +0.041 | -0.118 … +0.200 | 24/26 | 0.572 | 1.000 | 0.02520 | 0.2205 | 2.780 | 0.06623 |
+| selRoulette | 50 | 106846.4638 | 95687.3102 | +0.634 | +0.395 … +0.872 | 7/43 | <0.001 | <0.001 | 0.02919 | 0.1785 | 4.760 | 0.07999 |
+| xUnbiased | 50 | 109098.6537 | 96945.1061 | +1.903 | +1.353 … +2.454 | 8/42 | <0.001 | <0.001 | 0.02106 | 0.2300 | 2.200 | 0.06243 |
+| xNone | 50 | 116595.4037 | 102797.7097 | +7.204 | +5.821 … +8.588 | 7/43 | <0.001 | <0.001 | 0.01044 | 0.7435 | 1.620 | 0.05937 |
+| xRandomRepair | 50 | 120585.2113 | 104270.9639 | +10.055 | +8.283 … +11.826 | 0/50 | <0.001 | <0.001 | 0.2467 | 0.000 | 9.860 | 0.1281 |
+| xUniform | 50 | 120636.7294 | 104280.7204 | +10.060 | +8.271 … +11.849 | 0/50 | <0.001 | <0.001 | 0.4337 | 0.000 | 10.18 | 0.1320 |
+| seedRandom | 50 | 136598.8705 | 125836.9744 | +23.577 | +20.139 … +27.015 | 1/49 | <0.001 | <0.001 | 0.01766 | 0.1975 | 0.6800 | 0.05392 |
+
+Gap to default by instance (%):
+
+| configuration | C100 | T1 | T4 | T7 | T10 |
+|---|---|---|---|---|---|
+| selTournament | -0.513 | -0.039 | -0.304 | -1.348 | -2.706 |
+| noSA | -0.046 | -0.217 | -0.343 | -0.326 | -0.970 |
+| plain | +1.350 | -0.413 | -0.563 | -0.607 | -0.557 |
+| noAgeing | +0.168 | -0.056 | +0.110 | -0.284 | -0.445 |
+| noPerturbation | -0.043 | -0.016 | -0.018 | -0.157 | -0.156 |
+| mFixedRate | +0.001 | +0.039 | -0.051 | -0.078 | -0.099 |
+| mNone | +0.108 | -0.126 | +0.109 | -0.145 | -0.013 |
+| noImmigration | -0.004 | +0.091 | +0.054 | -0.067 | -0.140 |
+| default | +0.000 | +0.000 | +0.000 | +0.000 | +0.000 |
+| noStagnation | -0.073 | +0.134 | +0.086 | -0.046 | -0.079 |
+| noLS | +0.200 | -0.061 | +0.111 | -0.117 | -0.016 |
+| mMoveTrip | -0.013 | -0.037 | -0.087 | +0.086 | +0.257 |
+| selRoulette | +0.490 | +0.086 | +0.330 | +0.784 | +1.478 |
+| xUnbiased | -0.220 | +0.582 | +1.613 | +2.811 | +4.731 |
+| xNone | -0.216 | +4.177 | +7.676 | +12.269 | +12.115 |
+| xRandomRepair | +2.247 | +4.722 | +9.260 | +16.143 | +17.901 |
+| xUniform | +2.107 | +4.748 | +9.265 | +16.196 | +17.985 |
+| seedRandom | +0.580 | +25.677 | +32.539 | +29.575 | +29.517 |
+
+Gap: (cost − default cost) / default cost of the run with the same instance and repeat; negative is better. p: exact two-sided Wilcoxon signed-rank test of the gaps; Holm p: adjusted over the configurations.
 <!-- results:end -->
 
 ## Conclusions
 
-_Not written yet: read the results against the analysis plan and the decision rule, then write here what was decided and why._
+_Written 2026-10-27._ This part is one of six; the conclusions of the whole comparison (Hybrid GA vs PECTOACO, and which GA mechanisms work) are in [the hub journal](../pecto-hga-vs-aco-1-ga-evals/JOURNAL.md#conclusions), drawn from `analysis.md` there. The results table above compares configurations within this part only.

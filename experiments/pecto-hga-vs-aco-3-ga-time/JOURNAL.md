@@ -42,9 +42,23 @@ Part of a four-part comparison. The design notes (parameter values as run, probe
 ## Results
 
 <!-- results:start (written by the worker; edit outside this block) -->
-No runs finished yet.
+_Updated 2026-10-26 22:22; also in summary.md._
+
+50 of 50 runs finished.
+
+| configuration | n | mean cost | median | gap to default % | 95% interval | better/worse | p | Holm p | diversity | duplicates | immigrations | mutationRate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| default | 50 | 102102.8152 | 93689.8297 | +0.000 | +0.000 … +0.000 | 0/0 | 1.000 | 1.000 | 0.04641 | 0.01500 | 1331 | 0.7500 |
+
+Gap to default by instance (%):
+
+| configuration | C100 | T1 | T4 | T7 | T10 |
+|---|---|---|---|---|---|
+| default | +0.000 | +0.000 | +0.000 | +0.000 | +0.000 |
+
+Gap: (cost − default cost) / default cost of the run with the same instance and repeat; negative is better. p: exact two-sided Wilcoxon signed-rank test of the gaps; Holm p: adjusted over the configurations.
 <!-- results:end -->
 
 ## Conclusions
 
-_Not written yet: read the results against the analysis plan and the decision rule, then write here what was decided and why._
+_Written 2026-10-27._ This part is one of six; the conclusions of the whole comparison (Hybrid GA vs PECTOACO, and which GA mechanisms work) are in [the hub journal](../pecto-hga-vs-aco-1-ga-evals/JOURNAL.md#conclusions), drawn from `analysis.md` there. The results table above compares configurations within this part only.
