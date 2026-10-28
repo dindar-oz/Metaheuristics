@@ -26,6 +26,9 @@ import metaheuristic.hybridga.AlternatingRouteCrossover;
 import metaheuristic.hybridga.CloneCrossover;
 import metaheuristic.hybridga.HybridGA;
 import metaheuristic.hybridga.PECTOHybridGA;
+import metaheuristic.island.IslandModel;
+import metaheuristic.island.MigrantSelector;
+import metaheuristic.island.MigrationTrigger;
 import metaheuristic.ls.LocalSearch;
 import metaheuristic.pso.PSO;
 import metaheuristic.rl.FeaturedConstructiveProblem;
@@ -44,6 +47,7 @@ import problems.pecto.PECTOInstances;
 import problems.pecto.PECTOProblem;
 import problems.pecto.PECTOSolution;
 import problems.pecto.aco.PECTOACO;
+import problems.pecto.island.PECTOIslands;
 import problems.pecto.operators.ChangeHospital;
 import problems.pecto.operators.GreedyPECTOSG;
 import problems.pecto.operators.MoveTrip;
@@ -199,7 +203,8 @@ public final class Catalog {
                         sa(isg, ops, 25, 0.01, 0.9985, 20),
                         localSearch(isg, ops),
                         pectoAco(),
-                        pectoHybridGa()),
+                        pectoHybridGa(),
+                        pectoIslands()),
                 new PECTOVisualizer());
 
         // ACO keeps three node x node matrices: ~170 MB for Table I: 1, ~690 MB for Table I: 10
@@ -443,6 +448,42 @@ public final class Catalog {
             default -> b.mutationRate(rate).mutationRateAdaptation(growth, 0.05, 0.75);
         }
         return b;
+    }
+
+    // PECTOACO and the hybrid GA as two islands (problems.pecto.island.PECTOIslands), each with its defaults (the GA's
+    // local search excepted); either channel can be switched off, both off is a portfolio of the two
+    private static AlgorithmSpec<PECTOSolution, PECTOProblem> pectoIslands() {
+        return new AlgorithmSpec<>("Islands (ACO + HGA)",
+                Arrays.asList(
+                        integer("GA steps", PECTOIslands.GA_STEPS, 1, 1000000, "GA generations per colony iteration "
+                                + "(one round)"),
+                        integer("GA local search steps", PECTOIslands.GA_LOCAL_SEARCH, 0, 1000000, "neighbors tried on "
+                                + "every offspring of the GA"),
+                        integer("ACO>GA migrants", PECTOIslands.MIGRANTS, 0, 100000, "good, diverse ants sent to the GA "
+                                + "when the colony is better or the GA is stuck; 0 = no ACO>GA channel"),
+                        real("ACO>GA max gap", PECTOIslands.MAX_GAP, 0, 100, "how much costlier than the colony's best "
+                                + "offered solution a migrant may be, as a fraction"),
+                        integer("ACO>GA stagnation", PECTOIslands.STAGNATION, 0, 1000000, "GA generations without "
+                                + "improvement (or migrants) that also trigger ACO>GA; 0 = only when the colony is better"),
+                        choice("GA>ACO", "on", "when the GA's best is better than the colony's, it deposits pheromone",
+                                "on", "off"),
+                        real("immigrant deposit", 1, 0, 100, "pheromone a GA solution deposits, as a fraction of 1 / cost "
+                                + "(1 = as much as the colony's best ant)"),
+                        real("migration margin", PECTOIslands.MARGIN, 0, 0.999, "how much better (fraction) a best "
+                                + "must be to count as better")),
+                (p, v) -> {
+                    PECTOACO aco = PECTOACO.builder().immigrantDeposit(v.getDouble("immigrant deposit")).build();
+                    HybridGA<PECTOSolution> ga = PECTOHybridGA.builder(p)
+                            .localSearchSteps(v.getInt("GA local search steps")).build();
+                    IslandModel.Builder<PECTOSolution, PECTOProblem> b = PECTOIslands.islands(aco, ga, v.getInt("GA steps"));
+                    double margin = v.getDouble("migration margin");
+                    if (v.getInt("ACO>GA migrants") > 0)
+                        b.channel(PECTOIslands.ACO, PECTOIslands.GA, PECTOIslands.acoToGa(margin, v.getInt("ACO>GA stagnation")),
+                                MigrantSelector.diverse(v.getInt("ACO>GA migrants"), v.getDouble("ACO>GA max gap")));
+                    if (v.getChoice("GA>ACO").equals("on"))
+                        b.channel(PECTOIslands.GA, PECTOIslands.ACO, MigrationTrigger.whenBetter(margin), MigrantSelector.best(1));
+                    return b.build();
+                });
     }
 
     // MAX-MIN ant colony that builds PECTO routes directly
