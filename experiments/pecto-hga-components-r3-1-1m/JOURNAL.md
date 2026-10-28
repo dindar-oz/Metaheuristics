@@ -103,9 +103,86 @@ Part 2 is limited to the configurations whose evaluations cost differently from 
 ## Results
 
 <!-- results:start (written by the worker; edit outside this block) -->
-No runs finished yet.
+_Updated 2026-10-28 09:10; also in summary.md._
+
+800 of 800 runs finished.
+
+| configuration | n | mean cost | median | gap to reduced % | 95% interval | better/worse | p | Holm p | diversity | duplicates | immigrations | mutationRate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| R+LS3 | 50 | 99062.1553 | 92174.9246 | -0.183 | -0.397 … +0.031 | 24/26 | 0.660 | 0.660 | 3.440e-05 | 0.9555 | 0.000 | 0.000 |
+| R+stagnation | 50 | 99521.3066 | 91868.4495 | -0.044 | -0.082 … -0.007 | 27/12 | 0.0052 | 0.026 | 0.0006097 | 0.8925 | 36.66 | 0.000 |
+| reduced | 50 | 99548.4469 | 92011.8952 | +0.000 | +0.000 … +0.000 | 0/0 | 1.000 | 1.000 | 0.0001971 | 0.9030 | 0.000 | 0.000 |
+| R+mutation | 50 | 99693.5157 | 92029.7376 | +0.073 | -0.054 … +0.200 | 18/32 | 0.101 | 0.303 | 0.0004148 | 0.8700 | 0.000 | 0.05000 |
+| R-cheaperBias | 50 | 99685.8623 | 92099.6683 | +0.084 | -0.038 … +0.207 | 22/28 | 0.101 | 0.303 | 0.0001771 | 0.8950 | 0.000 | 0.000 |
+| R+SAlight | 50 | 100366.0071 | 92053.2492 | +0.398 | +0.171 … +0.626 | 17/33 | 0.0014 | 0.0086 | 0.0002170 | 0.8655 | 0.000 | 0.000 |
+| R-ageing | 50 | 100249.1761 | 92217.7157 | +0.406 | +0.237 … +0.575 | 11/39 | <0.001 | <0.001 | 0.0002274 | 0.8780 | 0.000 | 0.000 |
+| R+LS30 | 50 | 101161.1521 | 91775.4730 | +0.740 | +0.282 … +1.198 | 23/27 | 0.055 | 0.222 | 0.0004052 | 0.7900 | 0.000 | 0.000 |
+| R+SA | 50 | 101480.3845 | 92070.0806 | +0.947 | +0.455 … +1.438 | 17/33 | <0.001 | 0.0014 | 0.0002877 | 0.8470 | 0.000 | 0.000 |
+| R+SAstrong | 50 | 104025.4506 | 92865.2325 | +2.357 | +1.367 … +3.346 | 7/43 | <0.001 | <0.001 | 0.002024 | 0.6225 | 0.000 | 0.000 |
+| R-recombination | 50 | 103944.4944 | 94771.2513 | +2.922 | +2.276 … +3.568 | 9/41 | <0.001 | <0.001 | 0.0001533 | 0.9370 | 0.000 | 0.000 |
+| R-tournament | 50 | 105895.7019 | 93004.7550 | +3.415 | +2.031 … +4.800 | 4/46 | <0.001 | <0.001 | 0.0008992 | 0.7685 | 0.000 | 0.000 |
+| full | 50 | 106885.4193 | 93428.0962 | +3.975 | +2.406 … +5.543 | 6/44 | <0.001 | <0.001 | 0.03583 | 0.06400 | 30.88 | 0.5764 |
+| R-LS | 50 | 112666.2265 | 95446.4115 | +8.142 | +5.608 … +10.675 | 0/50 | <0.001 | <0.001 | 0.000 | 0.9750 | 0.000 | 0.000 |
+| R-seeding | 50 | 113035.3490 | 104281.8421 | +11.091 | +9.565 … +12.616 | 1/49 | <0.001 | <0.001 | 0.0002377 | 0.8745 | 0.000 | 0.000 |
+| R-repair | 50 | 127355.6808 | 100841.0298 | +15.788 | +10.288 … +21.288 | 5/45 | <0.001 | <0.001 | 0.001600 | 0.6630 | 0.000 | 0.000 |
+
+Gap to reduced by instance (%):
+
+| configuration | C100 | T1 | T4 | T7 | T10 |
+|---|---|---|---|---|---|
+| R+LS3 | -0.112 | +0.081 | +0.187 | +0.392 | -1.463 |
+| R+stagnation | -0.067 | -0.042 | -0.111 | -0.001 | +0.000 |
+| reduced | +0.000 | +0.000 | +0.000 | +0.000 | +0.000 |
+| R+mutation | -0.087 | +0.023 | +0.022 | +0.177 | +0.231 |
+| R-cheaperBias | -0.123 | +0.022 | +0.144 | +0.272 | +0.108 |
+| R+SAlight | -0.111 | -0.019 | +0.079 | +0.334 | +1.710 |
+| R-ageing | +0.075 | +0.024 | +0.205 | +0.401 | +1.322 |
+| R+LS30 | -0.064 | -0.063 | -0.132 | +0.205 | +3.755 |
+| R+SA | -0.077 | -0.020 | +0.102 | +0.508 | +4.220 |
+| R+SAstrong | -0.248 | +0.333 | +0.947 | +1.679 | +9.072 |
+| R-recombination | -0.355 | +1.899 | +3.007 | +3.646 | +6.414 |
+| R-tournament | +0.170 | +0.360 | +1.198 | +2.454 | +12.896 |
+| full | +0.030 | +0.510 | +1.593 | +3.086 | +14.653 |
+| R-LS | +4.509 | +1.672 | +3.726 | +5.230 | +25.572 |
+| R-seeding | +1.193 | +11.569 | +13.323 | +16.017 | +13.351 |
+| R-repair | -0.050 | +4.110 | +9.534 | +12.334 | +53.011 |
+
+Gap: (cost − reduced cost) / reduced cost of the run with the same instance and repeat; negative is better. p: exact two-sided Wilcoxon signed-rank test of the gaps; Holm p: adjusted over the configurations.
 <!-- results:end -->
 
 ## Conclusions
 
-_Not written yet: read the results against the analysis plan and the decision rule, then write here what was decided and why._
+_Written 2026-10-28 after both parts finished (1,200 of 1,200 runs); numbers from `analysis.md` (analyze.py). Gap = (variant - R) / R, paired; positive = the variant is worse._
+
+**The reduced GA is confirmed on new instances.** On instance seed 43 and new seeds, the full GA is worse than R by +3.98 % at 1M evaluations (6/44 pairs better/worse) and by +3.33 % at 300 s (6/44). That matches round 2 (-2.97 % and -3.45 % for R against the full GA), so the reduction is not tied to the round-1/2 instances. As before, the gap grows with instance size: from about 0 on C100 to +14.7 % (1M) and +12.0 % (300 s) on T10.
+
+**Final classification (the decision rule of this round):**
+
+| component | round 3, 1M | round 3, 300 s | FINAL | round 1 |
+|---|---|---|---|---|
+| ARX best-insertion repair | +15.79 % [10.29, 21.29], NEEDED | not tested | **WORTH KEEPING** | confirmed |
+| greedy-based seeding | +11.09 % [9.57, 12.62], NEEDED | not tested | **WORTH KEEPING** | confirmed |
+| local search of the offspring | +8.14 % [5.61, 10.68], NEEDED | +8.09 % [5.74, 10.43], NEEDED | **WORTH KEEPING** | confirmed |
+| tournament-only selection (vs the roulette mix) | +3.42 % [2.03, 4.80], NEEDED | not tested | **WORTH KEEPING** | confirmed |
+| recombination (ARX vs clone) | +2.92 % [2.28, 3.57], NEEDED | not tested | **WORTH KEEPING** | confirmed |
+| age protection | +0.41 % [0.24, 0.58], NEEDED | not tested | **WORTH KEEPING** | new (round 1 inconclusive) |
+| ARX cheaper-route bias | +0.08 % [-0.04, 0.21], UNDECIDED | not tested | UNDECIDED | round 1: ESSENTIAL (+1.47 %) |
+| offspring mutation | +0.07 % [-0.05, 0.20], DOES NOT HELP | not tested | **NOT WORTH KEEPING** | confirmed |
+| stagnation response | -0.04 % [-0.08, -0.01], DOES NOT HELP | not tested | **NOT WORTH KEEPING** | confirmed |
+| SA on the best individual | worse with every schedule: R+SA +0.95 %, R+SAlight +0.40 %, R+SAstrong +2.36 % | better with every schedule: R+SA -1.16 % (49/1), R+SAlight -0.74 %, R+SAstrong -1.32 % (50/0) | **BUDGET-DEPENDENT** | round 1: REMOVABLE at 1M |
+
+**Against the hypothesis.**
+- *As expected:* seeding, repair, recombination and tournament selection are essential around R and on the new instances; mutation and the stagnation response do not help; at 1M evaluations no SA schedule helps; at 300 s SA's cheap evaluations make it pay.
+- *Stronger than expected:* at 300 s SA does not just become competitive, it is better with every schedule. The strongest schedule (5 neighbors per temperature) is best: -1.32 %, 50/0.
+- *Wrong twice.* Age protection is NEEDED (+0.41 %, with the most on T10: +1.32 %), where the hypothesis said inconclusive. The cheaper-route bias is UNDECIDED around R, at most about +0.2 %, where the hypothesis said it stays essential on large instances (T10: +0.11 %). The likely reason for the bias, an interpretation that was not tested: with 95 % duplicates, the two parents usually share most routes, so which parent's route ARX takes rarely matters. In the diverse full GA it did matter (+1.47 % in round 1). Age protection, inversely, matters more in a collapsed population: it keeps a fresh offspring from being replaced at once by the next, near-identical one.
+- *Stagnation response:* adding it back is significantly better (Holm p = 0.026, 27/12), but by only 0.04 %, below the 0.1 % that the rule counts as a gain. It fires rarely around R, which keeps improving (median stagnation 41 generations, against the trigger at 100).
+
+**Local search depth is budget-dependent as well.** At 1M, LS3 and LS30 both rate SAME AS LS10, but LS30 is +3.75 % on T10. At 300 s, LS30 is BETTER (-1.68 %, 46/4) and LS3 is WORSE (+2.13 %, 7/43).
+
+**The common cause: an evaluation is not a fixed cost in this GA.** R makes only about 4,700 evaluations per second, because a generation pays for ARX with best-insertion repair and the replacement whatever its number of evaluations. SA and deep local search spend evaluations on cheap single-move neighbors: R+SA runs at 10,300 eval/s, R+LS30 at 11,600, R+SAstrong at 28,300. At equal evaluations these neighbor evaluations crowd out generations and lose; at equal time they come almost free and win. The evaluation budget therefore penalizes cheap-neighbor components, and for practical use, where the budget is wall time, the 300 s verdicts are the relevant ones. The speed ratios depend on the machine and the JIT, but the direction should not.
+
+**Recommendation.**
+1. Fixed: keep greedy seeding, ARX with best-insertion repair, recombination, local search of every offspring, tournament-only selection and age protection. Drop offspring mutation and the stagnation response. The cheaper-route bias costs nothing and was essential in the diverse GA, so keep it at 0.75 (undecided around R).
+2. Time-limited runs (the lab, real use): SA on and local search deeper (LS30). Each helps alone at 300 s, by -1.16 % to -1.32 % (SA) and -1.68 % (LS30). **The combination R+SA+LS30 was not tested.** Both buy the same thing, cheap evaluations, so their gains may not add up. A short confirmatory round would settle this before changing the default: R, R+SA, R+LS30, R+SA+LS30 and R+SAstrong+LS30 at 300 s and 600 s on new seeds.
+3. Evaluation-limited comparisons (the paper-style protocol): keep R as it is (SA off, LS10).
+4. The code default (`PECTOHybridGA.builder`, the lab's "Hybrid GA") is R since 2026-10-27, as provisionally decided after round 2; the user makes the final call now that round 3 is in.

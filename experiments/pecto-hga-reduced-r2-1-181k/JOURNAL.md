@@ -70,9 +70,50 @@ Without SA a generation costs about 82 evaluations instead of about 190.
 ## Results
 
 <!-- results:start (written by the worker; edit outside this block) -->
-No runs finished yet.
+_Updated 2026-10-27 08:29; also in summary.md._
+
+100 of 100 runs finished.
+
+| configuration | n | mean cost | median | gap to default % | 95% interval | better/worse | p | Holm p | diversity | duplicates | immigrations | mutationRate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| reduced | 50 | 103764.4612 | 94690.5340 | -1.072 | -1.444 … -0.700 | 39/11 | <0.001 | <0.001 | 0.0003050 | 0.8350 | 0.000 | 0.000 |
+| default | 50 | 105642.9447 | 95413.3123 | +0.000 | +0.000 … +0.000 | 0/0 | 1.000 | 1.000 | 0.02906 | 0.2930 | 2.920 | 0.06734 |
+
+Gap to default by instance (%):
+
+| configuration | C100 | T1 | T4 | T7 | T10 |
+|---|---|---|---|---|---|
+| reduced | -0.087 | +0.071 | -0.662 | -1.575 | -3.107 |
+| default | +0.000 | +0.000 | +0.000 | +0.000 | +0.000 |
+
+Gap: (cost − default cost) / default cost of the run with the same instance and repeat; negative is better. p: exact two-sided Wilcoxon signed-rank test of the gaps; Holm p: adjusted over the configurations.
 <!-- results:end -->
 
 ## Conclusions
 
-_Not written yet: read the results against the analysis plan and the decision rule, then write here what was decided and why._
+_Written 2026-10-27 after all three parts finished (300 of 300 runs); numbers from `analysis.md` (analyze.py)._
+
+**Verdict: the reduced GA is the recommended default.** The decision rule accepted it and found it BETTER at all three budgets:
+
+| budget | mean paired gap (reduced - default) | 95 % interval | better/worse | Wilcoxon p |
+|---|---|---|---|---|
+| 181,501 evaluations | -1.07 % | -1.44 … -0.70 | 39/11 | <0.001 |
+| 1,000,000 evaluations | -2.97 % | -3.84 … -2.10 | 43/7 | <0.001 |
+| 600 s | -3.45 % | -4.42 … -2.48 | 40/10 | <0.001 |
+
+**Against the hypothesis.**
+- *Additivity held.* The predicted gains were about 1.4 % at 181,501 and 2.5-3 % at 1M; the observed gains were 1.07 % and 2.97 %. Round 1's removals, tested one at a time, add up on new seeds, so its selection of mechanisms was not an artefact of the runs it was chosen from.
+- *The time risk did not happen; the prediction was wrong.* At 600 s the reduced GA made only 2.48M evaluations to the default's 5.49M (4,141 vs 9,154 eval/s), but its margin was larger (3.45 %), not smaller. The default's extra evaluations, mostly SA, bought nothing at that budget.
+- *The gain grows with instance size and budget.* At 600 s by instance: T10 -8.7 %, T7 -5.6 %, T4 -2.6 %, T1 -0.8 %. The reduced GA won all 10 pairs on each of these instances.
+
+**The collapse risk is real but cheap.** The reduced GA ends with 95-96 % duplicates and zero diversity at every budget (the default: 0-24 %). It keeps improving all the same: median stagnation is 30 generations at 600 s, against 4,360 for the default. In practice it becomes an iterated local search around one solution, with crossover between near-copies. The cost of the collapse shows only on the smallest instance. On C100 the reduced GA reaches 11,228.7 within 15 s and never moves again; it is +0.44 % behind the default at 600 s, losing all 10 pairs. On C100 the default, which keeps diversity, slowly overtakes it.
+
+**Anytime (600 s).** The reduced GA is equal to or slightly worse than the default at 15 s, ahead by 60-120 s, and on T7 and T10 still falling steeply at 600 s (T10 median: 188,096 at 300 s, 181,617 at 600 s). The 600 s budget still limits it on the large instances.
+
+**Against PECTOACO at 600 s (secondary, descriptive).** The reduced GA now beats PECTOACO on C100 (-0.23 %), T1 (-2.12 %) and T4 (-0.51 %; the full GA lost T4 by about 2 %). PECTOACO still wins T7 (+2.33 %) and T10 (+5.49 %). On both instances all 10 PECTOACO runs beat all 10 GA runs (A12 = 0). The gap on T10 fell from about 16 % for the full GA to 5.5 %. As predicted, the reduction narrows the gap on the large instances but does not close it; the instance-dependent picture of round 1 remains, with the crossover point moved toward larger instances.
+
+**Consequences.**
+1. Use `reduced` as the GA baseline: roulette 0, no mutation, stagnation response off, SA off. Round 3 (`pecto-hga-components-r3-*`) is already built on it (`R`). It tests every remaining component of R, and SA and LS-depth variants, at 1M evaluations and 300 s, on new instances (instance seed 43).
+2. Open question for round 3: SA was REMOVABLE at equal evaluations in round 1. At equal time, however, it is cheap search: it more than doubles the evaluations per second. The `R+SA*` variants at 300 s decide whether SA belongs back in a time-limited GA.
+3. *Code defaults changed (2026-10-27, after this round; provisional until round 3 is analysed).* `PECTOHybridGA.builder` and the lab's "Hybrid GA" defaults are now the reduced GA: roulette 0, mutation none, stagnation period 0 (the new "off" value), SA inner loop 0. `PECTOHybridGA.researchBuilder` is the full research GA. A spec's `default` configuration therefore means the full GA only on runtimes frozen before the change, such as every part of rounds 1-3 (`r-20261026-200519-e72c3f4748`). To reproduce the full GA on a newer runtime, set roulette 0.75, mutation costliest route move, stagnation period 100 and SA inner loop 1.
+4. Not tested and worth a later round: a cheap way to keep diversity without the harmful stagnation response, such as rejecting duplicate offspring. It targets the C100-type stall and might help the large instances as well.
