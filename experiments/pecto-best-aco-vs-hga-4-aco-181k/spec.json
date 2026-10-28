@@ -1,0 +1,58 @@
+{
+  "id": "pecto-best-aco-vs-hga-4-aco-181k",
+  "title": "Best PECTOACO vs best Hybrid GA on T8-T10, part 4: PECTOACO, 181,501 evaluations",
+  "question": "On the three largest Table I instances (T8, T9, T10), which is better: the best PECTOACO decided so far (its tuned defaults: 2 explorers, explorer rate 0.05, beta 0.5, deposit 0.05; pecto-explorer-tuning-r1/r2) or the best Hybrid GA decided so far (the reduced GA R of pecto-hga-reduced-r2 and pecto-hga-components-r3, and its best time-budget variant R+LS30)? Under (a) equal wall time, 600 s, and (b) equal evaluations, 181,501 (= 1500 PECTOACO iterations, its tuning budget). Also, on these instances: does R+LS30 beat R at both budgets, and does adding SA to R+LS30 help (the combination untested in round 3)?",
+  "hypothesis": "From pecto-hga-reduced-r2-3-600s (instance seed 42), R against PECTOACO at 600 s: T7 +2.33 %, T10 +5.49 % (gap of medians, PECTOACO better, A12 = 0 on both); the GA's deficit grows with the share of beds used. From pecto-hga-components-r3-2-300s (seed 43), at 300 s: R+LS30 vs R -1.68 % overall, -1.66 % on T7, -4.81 % on T10; R+SA vs R -1.16 % (T10 -3.17 %). PECTOACO now runs the faster ambulance choice (commit cf2fdff, bit-identical, about 18 % less time per iteration), so at 600 s it gets more iterations than in round 1. H1 (600 s): PECTOACO beats R on all three instances by 2-6 %, the gap growing from T8 to T10; R+LS30 narrows it by 1.5-5 points and may tie on T8 but still loses T10. H2 (600 s, GA): R+LS30 beats R on all three; R+SA+LS30 vs R+LS30 between -1 % and +0.3 % (both gain from cheap evaluations, so the gains need not add up). H3 (181,501 evaluations): PECTOACO wins all three by more than 10 % (round 1: the full GA lost T10 by about 22 % at this budget; R is about 3 % better than the full GA on T10); LS30 does not help at this budget.",
+  "analysisPlan": "Four experiments, one comparison: pecto-best-aco-vs-hga-1-hga-600s (Hybrid GA R, R+LS30, R+SA+LS30; 600 s), -2-aco-600s (PECTOACO default; 600 s), -3-hga-181k and -4-aco-181k (the same at 181,501 evaluations). Instances: Table I 8, 9, 10 with instance seed 44, new to both algorithms (PECTOACO was tuned on T8-T10 with seed 42; the GA's components were selected on seeds 42 and 43). Seeds: base 20261029, repeats 0-9. All configurations are written out in full (R = roulette 0, mutation none, stagnation period 0, SA inner loop 0, local search 10; the other HGA parameters and every PECTOACO parameter not named keep the Catalog defaults of the runtime). PRIMARY, per budget and instance: PECTOACO against the pre-registered best HGA of that budget, R+LS30 at 600 s and R at 181,501 evaluations (round 3: LS30 is better than LS10 at equal time, not at equal evaluations); unpaired (a shared seed means nothing across algorithms), exact two-sided Mann-Whitney U on the 10 vs 10 final best costs, Holm over the 3 instances; size as the gap of medians (HGA - ACO) / ACO in % and A12 (probability that an HGA run beats an ACO run). SECONDARY: (1) PECTOACO against each other HGA configuration, same tests, Holm per configuration; (2) within the HGA, paired by instance and repeat over 30 pairs: R+LS30 vs R and R+SA+LS30 vs R+LS30, mean paired gap with 95 % t-interval, exact Wilcoxon, Holm over the 2, per budget; (3) anytime median best cost of every configuration at 15, 30, 60, 120, 300, 600 s and at 10k, 25k, 50k, 100k, 181,501 evaluations, and where the HGA and ACO curves cross; (4) evaluations per second, iterations or generations; (5) load check: evaluations per second by start order in the time parts (7 runs in parallel on 8 logical processors; the tail of part 1 shares the machine with the head of part 2). Analysis script: analyze.py in the folder of pecto-best-aco-vs-hga-1-hga-600s, written before any result.",
+  "decisionRule": "Decided separately per budget, on final best cost only. Per instance, an algorithm wins if Holm p < 0.05 and the median gap is at least 0.1 % (smaller significant differences are a tie). Verdict 'HGA better' if the primary HGA wins on at least 2 of 3 instances and loses on none; 'PECTOACO better' symmetrically; otherwise 'instance-dependent', stated as who wins where. Within the HGA (secondary 2): a variant is better if Holm p < 0.05 and the mean paired gap is at most -0.1 %. If R+SA+LS30 is better than R+LS30 at 600 s, its comparison with PECTOACO is reported as well, but it does not replace the pre-registered primary (it was picked on these runs). Diversity never enters the verdict. Conclusions go in the journal of pecto-best-aco-vs-hga-1-hga-600s.",
+  "problem": "Casualty transport (PECTO)",
+  "problemParams": {
+    "instance seed": 44.0
+  },
+  "instances": [
+    {
+      "label": "T8",
+      "seedKey": 8,
+      "params": {
+        "instance": "Table I: 8"
+      }
+    },
+    {
+      "label": "T9",
+      "seedKey": 9,
+      "params": {
+        "instance": "Table I: 9"
+      }
+    },
+    {
+      "label": "T10",
+      "seedKey": 10,
+      "params": {
+        "instance": "Table I: 10"
+      }
+    }
+  ],
+  "algorithm": "ACO (MMAS)",
+  "algorithmParams": {},
+  "configs": [
+    {
+      "label": "default",
+      "params": {
+        "explorers": 2.0,
+        "explorer rate": 0.05,
+        "explorer beta": 0.5,
+        "explorer deposit": 0.05
+      }
+    }
+  ],
+  "baseline": "default",
+  "seeds": {
+    "base": 20261029,
+    "firstRepeat": 0,
+    "repeats": 10
+  },
+  "budget": {
+    "evaluations": 181501
+  },
+  "traceEvery": 50
+}

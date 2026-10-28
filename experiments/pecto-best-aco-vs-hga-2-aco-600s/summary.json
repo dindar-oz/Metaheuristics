@@ -1,0 +1,43 @@
+{
+  "experiment": "pecto-best-aco-vs-hga-2-aco-600s",
+  "runs": 30,
+  "total": 30,
+  "baseline": "default",
+  "rows": [
+    {
+      "config": "default",
+      "n": 30,
+      "meanCost": 164408.47036741962,
+      "medianCost": 155407.34211273323,
+      "sdCost": 30464.9106311124,
+      "minCost": 132836.00756519142,
+      "perInstanceCost": {
+        "T8": 133085.5683220105,
+        "T9": 155375.94912269787,
+        "T10": 204763.89365755054
+      },
+      "metrics": {
+        "branchingFactor": 1.1003623660569704,
+        "currentCost": 165584.9630006971,
+        "diversity": 0.15715781148859428,
+        "duplicates": 0.0,
+        "explorerWins": 0.1,
+        "meanCost": 203940.65310364813,
+        "stagnation": 341.56666666666666
+      },
+      "pairs": 30,
+      "gap": 0.0,
+      "gapLow": 0.0,
+      "gapHigh": 0.0,
+      "better": 0,
+      "worse": 0,
+      "p": 1.0,
+      "pHolm": 1.0,
+      "perInstanceGap": {
+        "T8": 0.0,
+        "T9": 0.0,
+        "T10": 0.0
+      }
+    }
+  ]
+}
