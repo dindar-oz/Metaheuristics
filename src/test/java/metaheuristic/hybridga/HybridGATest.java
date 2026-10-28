@@ -85,17 +85,17 @@ class HybridGATest {
     @Test
     void everyMechanismCanBeSwitchedOff() {
         List<HybridGA.Builder<PECTOSolution>> variants = List.of(
-                PECTOHybridGA.builder(FULL).clearSources().source(new RandomPECTOSG(FULL), 1),
-                PECTOHybridGA.builder(FULL).crossover(new CloneCrossover<>()),
-                PECTOHybridGA.builder(FULL).crossover(new RouteCrossover()),
-                PECTOHybridGA.builder(FULL).crossover(new AlternatingRouteCrossover(0.5, false)),
-                PECTOHybridGA.builder(FULL).mutation(new MoveTrip()),
-                PECTOHybridGA.builder(FULL).mutationRate(0).mutationRateAdaptation(1, 0, 0),
-                PECTOHybridGA.builder(FULL).immigration(false),
-                PECTOHybridGA.builder(FULL).perturbationOnStagnation(false),
-                PECTOHybridGA.builder(FULL).immigration(false).perturbationOnStagnation(false).mutationRateAdaptation(1, 0.05, 0.75),
-                PECTOHybridGA.builder(FULL).minVictimAge(0),
-                PECTOHybridGA.builder(FULL).localSearchSteps(0).annealing(25, 0.1, new GeometricCooling(0.95), 0));
+                PECTOHybridGA.researchBuilder(FULL).clearSources().source(new RandomPECTOSG(FULL), 1),
+                PECTOHybridGA.researchBuilder(FULL).crossover(new CloneCrossover<>()),
+                PECTOHybridGA.researchBuilder(FULL).crossover(new RouteCrossover()),
+                PECTOHybridGA.researchBuilder(FULL).crossover(new AlternatingRouteCrossover(0.5, false)),
+                PECTOHybridGA.researchBuilder(FULL).mutation(new MoveTrip()),
+                PECTOHybridGA.researchBuilder(FULL).mutationRate(0).mutationRateAdaptation(1, 0, 0),
+                PECTOHybridGA.researchBuilder(FULL).immigration(false),
+                PECTOHybridGA.researchBuilder(FULL).perturbationOnStagnation(false),
+                PECTOHybridGA.researchBuilder(FULL).immigration(false).perturbationOnStagnation(false).mutationRateAdaptation(1, 0.05, 0.75),
+                PECTOHybridGA.researchBuilder(FULL).minVictimAge(0),
+                PECTOHybridGA.researchBuilder(FULL).localSearchSteps(0).annealing(25, 0.1, new GeometricCooling(0.95), 0));
         for (HybridGA.Builder<PECTOSolution> b : variants) {
             HybridGA<PECTOSolution> ga = b.populationSize(10).stagnationPeriod(2).build();
             RunResult<PECTOSolution> result = run(ga, FULL, 3, 4000);
@@ -104,10 +104,39 @@ class HybridGATest {
     }
 
     @Test
+    void everyMechanismOffByDefaultCanBeSwitchedOn() {
+        List<HybridGA.Builder<PECTOSolution>> variants = List.of(
+                PECTOHybridGA.builder(FULL).parentSelectors(null, null, 0.75),
+                PECTOHybridGA.builder(FULL).mutationRate(0.05).mutationRateAdaptation(1.1, 0.05, 0.75),
+                PECTOHybridGA.builder(FULL).stagnationPeriod(2),
+                PECTOHybridGA.builder(FULL).annealing(25, 0.1, new GeometricCooling(0.95), 1));
+        for (HybridGA.Builder<PECTOSolution> b : variants) {
+            HybridGA<PECTOSolution> ga = b.populationSize(10).build();
+            RunResult<PECTOSolution> result = run(ga, FULL, 3, 4000);
+            assertTrue(FULL.isFeasible(result.bestSolution()), ga.describe());
+        }
+    }
+
+    @Test
+    void defaultIsTheReducedGAOfTheExperiments() {
+        // the 'reduced' configuration of pecto-hga-reduced-r2 and the R of pecto-hga-components-r3, as lab parameters
+        // on the research GA: roulette 0, mutation none, stagnation period 1,000,000, SA inner loop 0
+        HybridGA<PECTOSolution> reduced = PECTOHybridGA.researchBuilder(PROBLEM).parentSelectors(null, null, 0)
+                .mutationRate(0).mutationRateAdaptation(1, 0, 0).stagnationPeriod(1000000)
+                .annealing(25, 0.1, new GeometricCooling(0.95), 0).build();
+        RunResult<PECTOSolution> a = run(PECTOHybridGA.builder(PROBLEM).build(), PROBLEM, 8, 8000);
+        RunResult<PECTOSolution> b = run(reduced, PROBLEM, 8, 8000);
+        assertEquals(b.bestCost(), a.bestCost());
+        assertArrayEquals(b.bestSolution().toSequence(), a.bestSolution().toSequence());
+        assertEquals(0, a.finalProgress().metrics().get(HybridGA.IMMIGRATIONS));
+        assertEquals(0, a.finalProgress().metrics().get(HybridGA.MUTATION_RATE));
+    }
+
+    @Test
     void switchingOffImmigrationAndPerturbationLeavesOnlyTheRateGrowth() {
         // with neither migrants nor perturbation, a stagnation changes nothing but the mutation rate, so a run without
         // mutation is the same whatever the stagnation period
-        HybridGA.Builder<PECTOSolution> quiet = PECTOHybridGA.builder(FULL).populationSize(10).immigration(false)
+        HybridGA.Builder<PECTOSolution> quiet = PECTOHybridGA.researchBuilder(FULL).populationSize(10).immigration(false)
                 .perturbationOnStagnation(false).mutationRate(0).mutationRateAdaptation(1.1, 0, 0);
         RunResult<PECTOSolution> often = run(quiet.stagnationPeriod(2).build(), FULL, 6, 3000);
         RunResult<PECTOSolution> never = run(quiet.stagnationPeriod(1000000).build(), FULL, 6, 3000);
@@ -205,7 +234,7 @@ class HybridGATest {
 
     @Test
     void stagnationBringsMigrantsAndRaisesTheMutationRate() {
-        HybridGA<PECTOSolution> ga = PECTOHybridGA.builder(FULL).stagnationPeriod(2).populationSize(10).build();
+        HybridGA<PECTOSolution> ga = PECTOHybridGA.researchBuilder(FULL).stagnationPeriod(2).populationSize(10).build();
         RunResult<PECTOSolution> result = run(ga, FULL, 2, 20000);
         assertTrue(FULL.isFeasible(result.bestSolution()));
         assertTrue(result.finalProgress().metrics().get(HybridGA.IMMIGRATIONS) > 0);
@@ -214,10 +243,13 @@ class HybridGATest {
 
     @Test
     void sameSeedSameRun() {
-        HybridGA<PECTOSolution> ga = PECTOHybridGA.builder(PROBLEM).stagnationPeriod(5).build();
-        RunResult<PECTOSolution> a = run(ga, PROBLEM, 7, 6000), b = run(ga, PROBLEM, 7, 6000);
-        assertEquals(a.bestCost(), b.bestCost());
-        assertArrayEquals(a.bestSolution().toSequence(), b.bestSolution().toSequence());
+        for (HybridGA.Builder<PECTOSolution> builder : List.of(PECTOHybridGA.builder(PROBLEM),
+                PECTOHybridGA.researchBuilder(PROBLEM).stagnationPeriod(5))) {
+            HybridGA<PECTOSolution> ga = builder.build();
+            RunResult<PECTOSolution> a = run(ga, PROBLEM, 7, 6000), b = run(ga, PROBLEM, 7, 6000);
+            assertEquals(a.bestCost(), b.bestCost());
+            assertArrayEquals(a.bestSolution().toSequence(), b.bestSolution().toSequence());
+        }
     }
 
     @Test
@@ -227,5 +259,6 @@ class HybridGATest {
         assertThrows(IllegalArgumentException.class, () -> PECTOHybridGA.builder(PROBLEM).refinement().build());
         assertThrows(IllegalArgumentException.class,
                 () -> PECTOHybridGA.builder(PROBLEM).mutationRateAdaptation(1.1, 0.8, 0.5).build());
+        assertThrows(IllegalArgumentException.class, () -> PECTOHybridGA.builder(PROBLEM).stagnationPeriod(-1).build());
     }
 }

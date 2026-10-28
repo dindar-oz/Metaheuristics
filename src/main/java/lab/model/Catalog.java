@@ -369,7 +369,8 @@ public final class Catalog {
                         .build());
     }
 
-    // the research hybrid GA (metaheuristic.hybridga): ARX crossover, migrants on stagnation, local search and SA
+    // the hybrid GA (metaheuristic.hybridga); the defaults are the reduced GA (tournament only, no mutation, no
+    // stagnation response, no SA), and every mechanism of the research GA can be switched back on
     private static AlgorithmSpec<PECTOSolution, PECTOProblem> pectoHybridGa() {
         return new AlgorithmSpec<>("Hybrid GA",
                 Arrays.asList(
@@ -385,16 +386,16 @@ public final class Catalog {
                         choice("ARX repair", "best insertion", "how ARX inserts the patients left without a trip: on the "
                                 + "nearest ambulance at the cheapest position, or on a random route at a random position",
                                 "best insertion", "random"),
-                        real("roulette", 0.75, 0, 1, "probability that the parents are drawn by roulette on 1 / cost "
+                        real("roulette", 0, 0, 1, "probability that the parents are drawn by roulette on 1 / cost "
                                 + "rather than by tournament"),
-                        choice("mutation", "costliest route move", "offspring mutation: a trip from the costliest to the "
+                        choice("mutation", "none", "offspring mutation: a trip from the costliest to the "
                                 + "cheapest route (domain-aware), a random trip to a random place (MoveTrip), or none",
                                 "costliest route move", "move trip", "none"),
                         real("mutation rate", 0.05, 0, 1, "initial probability that an offspring is mutated"),
                         real("mutation rate growth", 1.1, 1, 10, "factor applied to the mutation rate at every stagnation "
                                 + "(kept in [0.05, 0.75]); 1 = fixed rate"),
-                        integer("stagnation period", 100, 1, 1000000, "generations without improvement of the "
-                                + "population's best that trigger the stagnation response"),
+                        integer("stagnation period", 0, 0, 1000000, "generations without improvement of the "
+                                + "population's best that trigger the stagnation response (0: none; the research GA: 100)"),
                         choice("immigration", "on", "on stagnation, migrants replace old individuals", "on", "off"),
                         real("migrant share", 0.1, 0, 1, "share of the population that immigrates on stagnation, and "
                                 + "of the oldest spared by the perturbation"),
@@ -407,7 +408,7 @@ public final class Catalog {
                         real("SA t0", 25, 0.001, 1e9, "initial temperature of the annealing of the best individual"),
                         real("SA t min", 0.1, 0, 1e9, "temperature at which the annealing ends"),
                         real("SA cooling", 0.95, 0.01, 0.9999, "geometric cooling factor"),
-                        integer("SA inner loop", 1, 0, 1000000, "neighbors per temperature (0: no annealing)")),
+                        integer("SA inner loop", 0, 0, 1000000, "neighbors per temperature (0: no annealing; the research GA: 1)")),
                 (p, v) -> pectoHybridGaBuilder(p, v)
                         .populationSize(v.getInt("population"))
                         .crossoverRate(v.getDouble("crossover rate"))

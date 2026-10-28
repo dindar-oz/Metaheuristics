@@ -34,8 +34,8 @@ import java.util.List;
  *     a tournament, both selecting k parents, with k from the population size as in the research code (5 up to 40
  *     individuals, 7 up to 80, 9 up to 120, 10 up to 160, 11 above).</li>
  * <li><b>Crossover.</b> Every pair of parents is crossed with probability {@code crossoverRate}.</li>
- * <li><b>Stagnation.</b> If the best cost in the population has not improved for {@code stagnationPeriod}
- *     generations, the next source in turn sends ceil(N x {@code migrantShare}) migrants, each replacing one of the
+ * <li><b>Stagnation</b> (if {@code stagnationPeriod} &gt; 0). If the best cost in the population has not improved
+ *     for {@code stagnationPeriod} generations, the next source in turn sends ceil(N x {@code migrantShare}) migrants, each replacing one of the
  *     old individuals ranked just after the oldest N x {@code migrantShare}; the mutation rate grows by the factor
  *     {@code mutationRateGrowth} (within [{@code minMutationRate}, {@code maxMutationRate}]), and every individual
  *     but the oldest N x {@code migrantShare} is perturbed once. The offspring are then not mutated. Otherwise, every
@@ -103,7 +103,7 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
             throw new IllegalArgumentException("minMutationRate must not exceed maxMutationRate");
         initialMutationRate = Params.probability("mutationRate", b.mutationRate);
         mutationRateGrowth = Params.positive("mutationRateGrowth", b.mutationRateGrowth);
-        stagnationPeriod = Params.positive("stagnationPeriod", b.stagnationPeriod);
+        stagnationPeriod = Params.nonNegative("stagnationPeriod", b.stagnationPeriod);
         migrantShare = Params.probability("migrantShare", b.migrantShare);
         immigration = b.immigration;
         perturbOnStagnation = b.perturbOnStagnation;
@@ -227,7 +227,7 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
                         for (S child : crossover.apply(parents.get(i).getRepresentation(), parents.get(j).getRepresentation(), rng))
                             offspring.add(evaluate(child, generation));
 
-            if (stagnated())
+            if (stagnationPeriod > 0 && stagnated())
                 respondToStagnation();
             else
                 mutate(offspring);
@@ -471,7 +471,8 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
             return this;
         }
 
-        // generations without improvement of the population's best that trigger immigration; default 100
+        // generations without improvement of the population's best that trigger the stagnation response; default 100
+        // (0: no stagnation response, so no migrants, perturbation or mutation-rate growth)
         public Builder<S> stagnationPeriod(int stagnationPeriod) {
             this.stagnationPeriod = stagnationPeriod;
             return this;
