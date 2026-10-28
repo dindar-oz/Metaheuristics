@@ -2,7 +2,11 @@ package problems.pecto.aco;
 
 import base.MutationOperator;
 import metaheuristic.AbstractMetaheuristic;
+import metaheuristic.Emigration;
+import metaheuristic.Immigration;
 import metaheuristic.Params;
+import metaheuristic.SearchProcess;
+import metaheuristic.SteppableMetaheuristic;
 import metaheuristic.run.Metrics;
 import metaheuristic.run.SearchContext;
 import problems.pecto.PECTOProblem;
@@ -11,6 +15,7 @@ import problems.pecto.operators.GreedyPECTOSG;
 import problems.pecto.operators.MoveTrip;
 import problems.pecto.operators.OptimalHospitals;
 import problems.pecto.operators.SwapTrips;
+import representation.base.Individual;
 import util.random.MersenneTwisterRNG;
 import util.random.RNG;
 import util.random.Seeds;
@@ -66,10 +71,16 @@ import java.util.Map;
  * its own RNG, derived from the run's, so both modes give the same run for the same seed, whatever the number of
  * threads.
  * <p>
+ * <b>Migration</b> (metaheuristic.island.IslandModel). A run offers the ants of its last iteration, the iteration's
+ * best after the local search and the best so far. A solution it takes in deposits {@code immigrantDeposit} / cost on
+ * its choices, like an extra best ant (then the pheromone is clamped); the colony's best so far, and with it tau_max,
+ * stays its own.
+ * <p>
  * The parts: {@link CandidateLists} (what the ants know about the instance), {@link Pheromone}, {@link Ant} (the
  * construction) and {@link AntBuilds}; this class holds the parameters and the iterations.
  */
-public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOProblem> {
+public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOProblem>
+        implements SteppableMetaheuristic<PECTOSolution, PECTOProblem> {
 
     /** The lambda-branching factor of the patient pheromone, a metric of every iteration (see {@link Pheromone}). */
     public static final String BRANCHING_FACTOR = "branchingFactor";
@@ -94,6 +105,7 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
     private final int explorers;
     private final double explorerRate;
     private final double explorerDeposit;
+    private final double immigrantDeposit;
 
     private PECTOACO(Builder b) {
         super(b.name);
@@ -114,6 +126,7 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
         explorerRate = Params.probability("explorerRate", b.explorerRate);
         explorerBeta = Params.nonNegative("explorerBeta", b.explorerBeta);
         explorerDeposit = Params.nonNegative("explorerDeposit", b.explorerDeposit);
+        immigrantDeposit = Params.nonNegative("immigrantDeposit", b.immigrantDeposit);
     }
 
     public static Builder builder() {
@@ -123,24 +136,116 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
     private record Scored(PECTOSolution solution, double cost) {
     }
 
+    // the greedy solution evaluated and the pheromone set up; every step is one iteration
     @Override
-    public void search(PECTOProblem problem, SearchContext<PECTOSolution> ctx) {
-        PECTOSolution greedy = GreedyPECTOSG.complete(problem.emptySolution());
-        if (ctx.shouldStop())
-            return;
-        Scored best = new Scored(greedy, ctx.evaluate(greedy));
-        if (problem.patientCount() == 0)
-            return;
+    public SearchProcess start(PECTOProblem problem, SearchContext<PECTOSolution> ctx) {
+        return new Run(problem, ctx);
+    }
 
-        CandidateLists lists = new CandidateLists(problem, candidates);
-        Pheromone pheromone = new Pheromone(this, problem, lists);
-        pheromone.bound(best.cost());
-        pheromone.fill();
-        List<Ant> ants = ants(problem, lists, pheromone, ctx.rng());
-        try (AntBuilds builds = AntBuilds.of(executionMode, threads, ants, problem)) {
-            iterate(ctx, pheromone, builds, best);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // cancels the run: ctx.shouldStop() sees the interrupt
+    // The state of one run
+    private final class Run implements SearchProcess, Emigration<PECTOSolution>, Immigration<PECTOSolution> {
+        private final SearchContext<PECTOSolution> ctx;
+        private final RNG rng;
+        private Pheromone pheromone;
+        private AntBuilds builds;
+        private Scored best;
+        private int iteration = 0;
+        private int explorerWins = 0;
+        private Iteration last;                 // the last iteration's ants and best, offered as emigrants
+        private Scored lastBest;
+        private boolean done = false;           // stopped, interrupted, or nothing to do
+
+        Run(PECTOProblem problem, SearchContext<PECTOSolution> ctx) {
+            this.ctx = ctx;
+            this.rng = ctx.rng();
+            PECTOSolution greedy = GreedyPECTOSG.complete(problem.emptySolution());
+            if (ctx.shouldStop()) {
+                done = true;
+                return;
+            }
+            best = new Scored(greedy, ctx.evaluate(greedy));
+            if (problem.patientCount() == 0) {
+                done = true;
+                return;
+            }
+            CandidateLists lists = new CandidateLists(problem, candidates);
+            pheromone = new Pheromone(PECTOACO.this, problem, lists);
+            pheromone.bound(best.cost());
+            pheromone.fill();
+            builds = AntBuilds.of(executionMode, threads, ants(problem, lists, pheromone, rng), problem);
+        }
+
+        @Override
+        public void step() {
+            if (done)
+                return;
+            try {
+                pheromone.weigh();
+                Iteration built = buildAndEvaluate(ctx, builds);
+                if (built == null) {
+                    done = true;
+                    return;
+                }
+                Scored iterationBest = improve(built.best, ctx, rng);
+                if (iterationBest == null) {
+                    done = true;
+                    return;
+                }
+                if (built.explorerWon)
+                    explorerWins++;
+                if (iterationBest.cost() < best.cost()) {
+                    best = iterationBest;
+                    pheromone.bound(best.cost());
+                }
+                updatePheromone(pheromone, iteration, iterationBest, best, built.explorerBest);
+                last = built;
+                lastBest = iterationBest;
+                ctx.iterationCompleted(metrics(built, iterationBest, pheromone, explorerWins), built.solutions);
+                iteration++;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // cancels the run: ctx.shouldStop() sees the interrupt
+                done = true;
+            }
+        }
+
+        @Override
+        public boolean finished() {
+            return done || ctx.shouldStop();
+        }
+
+        @Override
+        public void close() {
+            if (builds != null)
+                builds.close();
+        }
+
+        // the last iteration's ants, its best after the local search and the best so far (before the first
+        // iteration: the greedy solution)
+        @Override
+        public List<Individual<PECTOSolution>> emigrants() {
+            List<Individual<PECTOSolution>> emigrants = new ArrayList<>();
+            if (last != null) {
+                for (int ant = 0; ant < last.solutions.size(); ant++)
+                    emigrants.add(new Individual<>(last.solutions.get(ant), last.costs[ant]));
+                emigrants.add(new Individual<>(lastBest.solution(), lastBest.cost()));
+            }
+            if (best != null)
+                emigrants.add(new Individual<>(best.solution(), best.cost()));
+            return emigrants;
+        }
+
+        @Override
+        public List<PECTOSolution> residents() {
+            return best == null ? List.of() : List.of(best.solution());
+        }
+
+        @Override
+        public void immigrate(List<Individual<PECTOSolution>> immigrants) {
+            if (pheromone == null || immigrantDeposit == 0 || immigrants.isEmpty())
+                return;
+            for (Individual<PECTOSolution> m : immigrants)
+                pheromone.deposit(m.getRepresentation(), immigrantDeposit / Math.max(m.getCost(), MIN_COST));
+            pheromone.clamp();
         }
     }
 
@@ -158,29 +263,6 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
         return ant >= antCount - explorers;
     }
 
-    private void iterate(SearchContext<PECTOSolution> ctx, Pheromone pheromone, AntBuilds builds, Scored best)
-            throws InterruptedException {
-        RNG rng = ctx.rng();
-        int explorerWins = 0;
-        for (int iteration = 0; !ctx.shouldStop(); iteration++) {
-            pheromone.weigh();
-            Iteration built = buildAndEvaluate(ctx, builds);
-            if (built == null)
-                return;
-            Scored iterationBest = improve(built.best, ctx, rng);
-            if (iterationBest == null)
-                return;
-            if (built.explorerWon)
-                explorerWins++;
-            if (iterationBest.cost() < best.cost()) {
-                best = iterationBest;
-                pheromone.bound(best.cost());
-            }
-            updatePheromone(pheromone, iteration, iterationBest, best, built.explorerBest);
-            ctx.iterationCompleted(metrics(built, iterationBest, pheromone, explorerWins), built.solutions);
-        }
-    }
-
     // the ants of the iteration, built and evaluated in ant order; null if the run stopped
     private Iteration buildAndEvaluate(SearchContext<PECTOSolution> ctx, AntBuilds builds) throws InterruptedException {
         builds.startIteration();
@@ -194,18 +276,21 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
         return built;
     }
 
-    // the ants' solutions of an iteration: the best (ties: the first), the best explorer and the mean cost
+    // the ants' solutions of an iteration and their costs: the best (ties: the first), the best explorer, the mean cost
     private static final class Iteration {
         final List<PECTOSolution> solutions;
+        final double[] costs;
         Scored best, explorerBest;
         boolean explorerWon;            // the best is an explorer
         private double costSum;
 
         Iteration(int ants) {
             solutions = new ArrayList<>(ants);
+            costs = new double[ants];
         }
 
         void add(PECTOSolution solution, double cost, boolean explorer) {
+            costs[solutions.size()] = cost;
             solutions.add(solution);
             costSum += cost;
             if (best == null || cost < best.cost()) {
@@ -284,7 +369,8 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
                 + (tauMinRatio > 0 ? ", tauMinRatio=" + tauMinRatio : "")
                 + ", explorers=" + explorers
                 + (explorers > 0 ? ", explorerRate=" + explorerRate + ", explorerBeta=" + explorerBeta
-                        + ", explorerDeposit=" + explorerDeposit : "");
+                        + ", explorerDeposit=" + explorerDeposit : "")
+                + (immigrantDeposit != 1 ? ", immigrantDeposit=" + immigrantDeposit : "");
     }
 
     public static final class Builder {
@@ -306,6 +392,7 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
         private double explorerRate = 0.05;
         private double explorerBeta = 0.5;
         private double explorerDeposit = 0.05;
+        private double immigrantDeposit = 1;
 
         private Builder() {
         }
@@ -435,6 +522,15 @@ public final class PECTOACO extends AbstractMetaheuristic<PECTOSolution, PECTOPr
          */
         public Builder explorerDeposit(double explorerDeposit) {
             this.explorerDeposit = explorerDeposit;
+            return this;
+        }
+
+        /**
+         * A solution taken in from another run (metaheuristic.island.IslandModel) deposits immigrantDeposit / cost;
+         * 0 = migrants are ignored, 1 = as much as the best ant; default 1. Plays no part in a run on its own.
+         */
+        public Builder immigrantDeposit(double immigrantDeposit) {
+            this.immigrantDeposit = immigrantDeposit;
             return this;
         }
 

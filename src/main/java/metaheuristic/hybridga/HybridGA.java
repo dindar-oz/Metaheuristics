@@ -4,7 +4,11 @@ import base.InitialSolutionGenerator;
 import base.MutationOperator;
 import base.OptimizationProblem;
 import metaheuristic.AbstractMetaheuristic;
+import metaheuristic.Emigration;
+import metaheuristic.Immigration;
 import metaheuristic.Params;
+import metaheuristic.SearchProcess;
+import metaheuristic.SteppableMetaheuristic;
 import metaheuristic.ea.base.CrossOverOperator;
 import metaheuristic.ea.base.ParentSelector;
 import metaheuristic.ea.base.VictimSelector;
@@ -21,7 +25,9 @@ import util.random.RNG;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The hybrid genetic algorithm of the research code (research/ga/pecto/PECTOGA), on the framework's classes. It is
@@ -52,8 +58,14 @@ import java.util.List;
  * There is no elitism: the best individual can be replaced, but the run keeps the best solution ever evaluated.
  * Every solution is evaluated through the search context, the refinement neighbors included. Individuals keep their
  * birth generation when they are mutated or refined, so their age counts from when they entered the population.
+ * <p>
+ * A run can also exchange solutions with other runs (metaheuristic.island.IslandModel): it offers its population, and
+ * migrants take the places of duplicates first, then of the oldest individuals, never of the best one; migrants that
+ * are already members are left out. Migrants are born when they arrive, so {@code minVictimAge} protects them as it
+ * protects offspring.
  */
-public final class HybridGA<S extends Representation<S>> extends AbstractMetaheuristic<S, OptimizationProblem<S>> {
+public final class HybridGA<S extends Representation<S>> extends AbstractMetaheuristic<S, OptimizationProblem<S>>
+        implements SteppableMetaheuristic<S, OptimizationProblem<S>> {
 
     /** The current mutation rate of the offspring, a metric of every generation. */
     public static final String MUTATION_RATE = "mutationRate";
@@ -132,14 +144,12 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
         return b;
     }
 
+    // the initial population, evaluated; every step is one generation
     @Override
-    public void search(OptimizationProblem<S> problem, SearchContext<S> ctx) {
+    public SearchProcess start(OptimizationProblem<S> problem, SearchContext<S> ctx) {
         Run run = new Run(problem, ctx);
         run.seed();
-        while (!ctx.shouldStop()) {
-            run.step();
-            run.generation++;
-        }
+        return run;
     }
 
     @Override
@@ -169,7 +179,7 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
     }
 
     // The state of one run
-    private final class Run {
+    private final class Run implements SearchProcess, Emigration<S>, Immigration<S> {
         private final OptimizationProblem<S> problem;
         private final SearchContext<S> ctx;
         private final RNG rng;
@@ -217,7 +227,8 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
             return counts;
         }
 
-        void step() {
+        @Override
+        public void step() {
             ParentSelector selector = rng.rollDice(primaryProbability) ? primarySelector : secondarySelector;
             List<Individual<S>> parents = selector.selectParents(population, rng);
             List<Individual<S>> offspring = new ArrayList<>();
@@ -241,6 +252,52 @@ public final class HybridGA<S extends Representation<S>> extends AbstractMetaheu
 
             ctx.iterationCompleted(Metrics.of(Metrics.MEAN_COST, meanCost(), MUTATION_RATE, mutationRate,
                     IMMIGRATIONS, immigrations), population.stream().map(Individual::getRepresentation).toList());
+            generation++;
+        }
+
+        @Override
+        public boolean finished() {
+            return ctx.shouldStop();
+        }
+
+        @Override
+        public List<Individual<S>> emigrants() {
+            return List.copyOf(population);
+        }
+
+        @Override
+        public List<S> residents() {
+            return population.stream().map(Individual::getRepresentation).toList();
+        }
+
+        @Override
+        public void immigrate(List<Individual<S>> immigrants) {
+            Set<S> present = new HashSet<>(residents());
+            List<Integer> victims = immigrationVictims();
+            int v = 0;
+            for (Individual<S> m : immigrants)
+                if (v < victims.size() && present.add(m.getRepresentation()))
+                    population.set(victims.get(v++), new Individual<>(m.getRepresentation(), m.getCost(), generation));
+        }
+
+        // the indices immigrants take, in turn: repeats of earlier members (the best counts as the first), then the
+        // others oldest first, the costlier first among equally old; never the best individual (the first cheapest)
+        private List<Integer> immigrationVictims() {
+            int best = 0;
+            for (int i = 1; i < population.size(); i++)
+                if (population.get(i).getCost() < population.get(best).getCost())
+                    best = i;
+            Set<S> seen = new HashSet<>();
+            if (!population.isEmpty())
+                seen.add(population.get(best).getRepresentation());
+            List<Integer> repeats = new ArrayList<>(), others = new ArrayList<>();
+            for (int i = 0; i < population.size(); i++)
+                if (i != best)
+                    (seen.add(population.get(i).getRepresentation()) ? others : repeats).add(i);
+            others.sort(Comparator.<Integer>comparingLong(i -> population.get(i).getBirthGeneration())
+                    .thenComparingDouble(i -> -population.get(i).getCost()));
+            repeats.addAll(others);
+            return repeats;
         }
 
         // true when the best cost in the population has not improved for stagnationPeriod generations

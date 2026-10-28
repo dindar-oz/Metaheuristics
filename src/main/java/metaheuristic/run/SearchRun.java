@@ -6,19 +6,15 @@ import representation.base.Representation;
 import util.random.RNG;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * The live state of one run. Confined to the run's thread; other threads only see ProgressSnapshots
  * published through the RunHandle.
  */
 final class SearchRun<S extends Representation<S>> implements SearchContext<S>, Progress {
-
-    private static final int DIVERSITY_SAMPLE = 16; // members whose pairwise distances give DIVERSITY
 
     private final OptimizationProblem<S> problem;
     private final RNG rng;
@@ -103,21 +99,13 @@ final class SearchRun<S extends Representation<S>> implements SearchContext<S>, 
     private Map<String, Double> withDiagnostics(Map<String, Double> metrics, List<? extends S> population) {
         Map<String, Double> all = new LinkedHashMap<>(metrics);
         all.put(Metrics.STAGNATION, (double) (iterations - bestIteration));
-        int n = population.size();
-        if (n < 2)
+        if (population.size() < 2)
             return all;
 
-        Set<S> distinct = new HashSet<>(population);
-        all.put(Metrics.DUPLICATES, (double) (n - distinct.size()) / n);
+        all.put(Metrics.DUPLICATES, PopulationStats.duplicates(population));
         if (distanceDefined) {
-            // all pairs of an evenly spaced sample, so that large populations stay cheap
-            int k = Math.min(n, DIVERSITY_SAMPLE);
-            double sum = 0;
             try {
-                for (int i = 0; i < k; i++)
-                    for (int j = i + 1; j < k; j++)
-                        sum += population.get(i * n / k).distanceTo(population.get(j * n / k));
-                all.put(Metrics.DIVERSITY, sum / (k * (k - 1) / 2.0));
+                all.put(Metrics.DIVERSITY, PopulationStats.diversity(population));
             } catch (UnsupportedOperationException e) {
                 distanceDefined = false;
             }
